@@ -1,0 +1,30 @@
+# Environment files with secrets
+.env
+*.env.local
+
+# OpenClaw state (contains credentials)
+.openclaw/
+
+# Node modules
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
