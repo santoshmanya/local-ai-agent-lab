@@ -198,10 +198,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 
 ### 💕 Kama Sutra & Relationships (The Fun Stuff 😉)
 - "What does Kama Sutra say about attracting a partner?"
-- "How to keep the spark alive in a long relationship?"
-- "What are the 64 arts every cultured person should know?"
 - "My partner and I have different love languages - what does ancient wisdom suggest?"
-- "How to be a better kisser according to Vatsyayana?"
 - "What does Kama Sutra say about compatibility beyond physical attraction?"
 - "How to apologize to your partner the right way?"
 - "What's the secret to a happy marriage according to ancient texts?"
