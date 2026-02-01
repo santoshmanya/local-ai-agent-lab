@@ -8,6 +8,20 @@
 
 **Total Setup Time:** ~25 minutes
 
+## 🕉️ Vedic Astro Guru
+
+This project brings **[Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic-astro-guru)** to life as a local, autonomous AI agent!
+
+> *"In-depth Answers from Vedas, Puranas and ancient Hindu scripts including Bhagavad-Gita and Kama Sutra"*
+> — By Santosh Nalubandhu
+
+**What it does:**
+- 🙏 Shares wisdom from Vedas, Puranas, and ancient Hindu scriptures
+- 📖 Provides guidance from Bhagavad Gita on life, relationships, and purpose
+- 💕 Offers insights from Kama Sutra on love, relationships, and self-improvement
+- ⭐ Interprets Vedic astrology for life guidance
+- 🌟 Spreads good morals and timeless wisdom to AI agents on Moltbook
+
 ## 📸 Screenshots
 
 ### OpenClaw Running UI
@@ -115,22 +129,23 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 ## 🔮 Roadmap & Future Releases
 
 ### Phase 1: Moltbook Integration 🦞 (Coming Soon)
-- [ ] Register AI agent on [Moltbook](https://moltbook.com) - Social network for AI agents
+- [ ] Register Vedic Astro Guru on [Moltbook](https://moltbook.com) - Social network for AI agents
 - [ ] Enable agent to post, comment, and interact with other AI agents
 - [ ] Implement heartbeat integration for periodic check-ins
-- [ ] Create Vedic Wisdom persona for the agent
+- [ ] Share daily Vedic wisdom and astrological insights
 
 ### Phase 2: Local RAG with AnythingLLM 📚
 - [ ] Set up [AnythingLLM](https://anythingllm.com) for local document processing
-- [ ] Ingest 30+ Vedic PDFs (Bhagavad Gita, Vedas, Upanishads)
+- [ ] Ingest 30+ Vedic PDFs (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
 - [ ] Create embeddings for semantic search
 - [ ] Connect RAG pipeline to OpenClaw agent
 
-### Phase 3: Vedic Wisdom Roast Agent 🔥
-- [ ] Build "Roast AI Agents" feature using Vedic principles
-- [ ] Agent reviews other AI agents' posts on Moltbook
-- [ ] Provides wisdom-based critiques inspired by Gita & Vedas
-- [ ] Engage in philosophical discussions with other moltys
+### Phase 3: Vedic Wisdom Agent 🙏
+- [ ] Share good morals and life guidance from ancient scriptures
+- [ ] Respond to other AI agents with wisdom from Gita & Vedas
+- [ ] Provide relationship advice inspired by Kama Sutra
+- [ ] Offer Vedic astrology interpretations based on birth stars
+- [ ] Engage in meaningful philosophical discussions with other moltys
 
 ### Phase 4: Voice Integration with Qwen3 TTS 🎙️
 - [ ] Integrate [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) for text-to-speech
@@ -147,14 +162,15 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 │  │ AnythingLLM │◄──►│ LM Studio   │◄──►│     OpenClaw        │ │
 │  │  (RAG)      │    │ GPT OSS 20B │    │  (AI Assistant)     │ │
 │  │  30+ PDFs   │    │             │    │                     │ │
-│  │  Gita/Vedas │    │             │    │                     │ │
+│  │ Gita/Vedas  │    │             │    │  Vedic Astro Guru   │ │
+│  │ Kama Sutra  │    │             │    │                     │ │
 │  └─────────────┘    └─────────────┘    └────────┬────────────┘ │
 │                                                  │              │
 │                                                  ▼              │
 │                                        ┌─────────────────────┐ │
 │                                        │     Moltbook        │ │
 │                                        │  (Social Network)   │ │
-│                                        │  "Roast AI Agents"  │ │
+│                                        │  Share Vedic Wisdom │ │
 │                                        └─────────────────────┘ │
 │                                                                 │
 │  ┌─────────────┐                                               │
@@ -162,6 +178,17 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 │  └─────────────┘                                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## 💬 Sample Wisdom Topics
+
+*Inspired by [Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic-astro-guru):*
+
+- "What do Vedic principles say about my job prospects?"
+- "What insights do the Puranas offer for relationships?"
+- "How to love someone selflessly?"
+- "How to minimize distractions?"
+- "What does moon in 1st house signify?"
+- "My birth star is Ashwini, which birth star should I date?"
 
 ## 🐛 Troubleshooting
 
@@ -183,4 +210,4 @@ OpenClaw is open source. See the [original repository](https://github.com/opencl
 
 ---
 
-**Built with 🦞 OpenClaw + 🤖 LM Studio**
+**Built with 🦞 OpenClaw + 🤖 LM Studio + 🕉️ Vedic Wisdom**
