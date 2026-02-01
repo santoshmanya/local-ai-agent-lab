@@ -1,28 +1,32 @@
-﻿# Local AI Agent Lab
+﻿# Local AI Agent Lab - Vedic RAG Edition 🕉️
 
-> Personal AI Assistant running entirely on local hardware - no cloud APIs required!
+> Personal AI Assistant with RAG-powered Vedic Wisdom - running entirely on local hardware!
 
-## 🚀 Project Overview
+## 🌿 Branch Overview
 
-**Local AI Agent Lab** sets up [OpenClaw](https://github.com/openclaw/openclaw) to work with a locally hosted LLM using LM Studio, providing a fully private AI assistant experience.
+This project has **3 versions** for different use cases:
 
-**Total Setup Time:** ~25 minutes
+| Branch | Description | Use Case |
+|--------|-------------|----------|
+| **main** | OpenClaw + LM Studio (direct) | Basic local LLM, no RAG |
+| **edic** ⭐ | OpenClaw + AnythingLLM RAG | Focused Vedic wisdom responses |
+| **moltbook** | Moltbook social integration | AI agent on social network |
 
-## 🕉️ Vedic Astro Guru
+**You are on the edic branch** - This adds RAG-powered responses from 30+ Vedic texts!
 
-This project brings **[Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic-astro-guru)** to life as a local, autonomous AI agent!
+## 🚀 What's Different in Vedic Branch?
 
-> *"In-depth Answers from Vedas, Puranas and ancient Hindu scripts including Bhagavad-Gita and Kama Sutra"*
-> — By Santosh Nalubandhu
-
-**What it does:**
-- 🙏 Shares wisdom from Vedas, Puranas, and ancient Hindu scriptures
-- 📖 Provides guidance from Bhagavad Gita on life, relationships, and purpose
-- 💕 Offers insights from Kama Sutra on love, relationships, and self-improvement
-- ⭐ Interprets Vedic astrology for life guidance
-- 🌟 Spreads good morals and timeless wisdom to AI agents on Moltbook
+This branch adds a **RAG Proxy** that:
+- ✅ Intercepts OpenClaw requests
+- ✅ Detects Vedic-related questions (relationships, karma, dharma, astrology, etc.)
+- ✅ Queries AnythingLLM for relevant scripture context
+- ✅ Injects wisdom into the prompt before LM Studio responds
+- ✅ Maintains casual "Reddit-style" tone while citing texts naturally
 
 ## 📸 Screenshots
+
+### Vedic RAG Q&A in Action
+![Vedic RAG Q&A](images/open_claw_vedic_astro_qa.png)
 
 ### OpenClaw Running UI
 ![OpenClaw UI](images/open_claw_running_ui.png)
@@ -30,226 +34,140 @@ This project brings **[Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic
 ### LM Studio with GPT OSS 20B API
 ![LM Studio API](images/lm_Studio_gptoss_20b_api.png)
 
-## 🛠️ Key Tools & Stack
+## 🏗️ Architecture
 
-| Component | Description |
-|-----------|-------------|
-| **OpenClaw** | Open-source AI assistant framework (Docker) |
-| **LM Studio** | Local LLM inference server |
-| **GPT OSS 20B** | Primary language model |
-| **32K Context Window** | Extended context for complex conversations |
-| **Docker Desktop** | Container runtime for OpenClaw |
-
-## 📋 Prerequisites
-
-- Docker Desktop (with WSL2 on Windows)
-- LM Studio installed
-- ~16GB+ RAM recommended for 20B model
-- GPU with 12GB+ VRAM (or CPU inference with patience)
-
-## ⚡ Quick Start
-
-### 1. Clone OpenClaw
-```bash
-git clone https://github.com/openclaw/openclaw.git
-cd openclaw
-```
-
-### 2. Build Docker Image
-```bash
-docker build -t openclaw:local .
-```
-
-### 3. Configure Environment
-
-Create `~/.openclaw/.env`:
-```env
-OPENCLAW_GATEWAY_TOKEN=your-secure-token-here
-LMSTUDIO_BASE_URL=http://host.docker.internal:58789/v1
-LMSTUDIO_API_KEY=local
-```
-
-### 4. Configure OpenClaw
-
-Create `~/.openclaw/openclaw.json`:
-```json
-{
-  "gateway": {
-    "mode": "local",
-    "auth": {
-      "token": "${OPENCLAW_GATEWAY_TOKEN}"
-    },
-    "controlUi": {
-      "allowInsecureAuth": true
-    }
-  },
-  "agents": {
-    "defaults": {
-      "workspace": "~/.openclaw/workspace",
-      "model": {
-        "primary": "lmstudio/gpt-oss-20b"
-      }
-    }
-  },
-  "models": {
-    "providers": {
-      "lmstudio": {
-        "baseUrl": "${LMSTUDIO_BASE_URL}",
-        "apiKey": "${LMSTUDIO_API_KEY}",
-        "api": "openai-completions",
-        "models": [
-          {
-            "id": "gpt-oss-20b",
-            "name": "GPT OSS 20B",
-            "contextWindow": 32000
-          }
-        ]
-      }
-    }
-  }
-}
-```
-
-### 5. Start LM Studio
-
-1. Open LM Studio
-2. Load **GPT OSS 20B** model
-3. **Important:** Set context length to **32768** before loading
-4. Start the local server on port **58789**
-
-### 6. Launch OpenClaw
-```bash
-docker compose up -d
-```
-
-### 7. Access the UI
-
-Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
-
-## 🔮 Roadmap & Future Releases
-
-### Phase 1: Moltbook Integration 🦞 (Coming Soon)
-- [ ] Register Vedic Astro Guru on [Moltbook](https://moltbook.com) - Social network for AI agents
-- [ ] Enable agent to post, comment, and interact with other AI agents
-- [ ] Implement heartbeat integration for periodic check-ins
-- [ ] Share daily Vedic wisdom and astrological insights
-
-### Phase 2: Local RAG with AnythingLLM 📚
-- [ ] Set up [AnythingLLM](https://anythingllm.com) for local document processing
-- [ ] Ingest Vedic literature (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
-- [ ] Create embeddings for semantic search
-- [ ] Connect RAG pipeline to OpenClaw agent
-
-### Phase 3: Vedic Wisdom Agent 🙏
-- [ ] Share good morals and life guidance from ancient scriptures
-- [ ] Respond to other AI agents with wisdom from Gita & Vedas
-- [ ] Provide relationship advice inspired by Kama Sutra
-- [ ] Offer Vedic astrology interpretations based on birth stars
-- [ ] Engage in meaningful philosophical discussions with other moltys
-
-### Phase 4: Voice Integration with Qwen3 TTS 🎙️
-- [ ] Integrate [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) for text-to-speech
-- [ ] Enable voice responses from the agent
-- [ ] Support multiple voice styles and accents
-
-## 🏗️ Architecture (Planned)
-
-```
+`
 ┌─────────────────────────────────────────────────────────────────┐
-│                     Local AI Agent Lab                          │
+│                  VEDIC RAG PIPELINE                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐ │
-│  │ AnythingLLM │◄──►│ LM Studio   │◄──►│     OpenClaw        │ │
-│  │  (RAG)      │    │ GPT OSS 20B │    │  (AI Assistant)     │ │
-│  │  30+ PDFs   │    │             │    │                     │ │
-│  │ Gita/Vedas  │    │             │    │  Vedic Astro Guru   │ │
-│  │ Kama Sutra  │    │             │    │                     │ │
-│  └─────────────┘    └─────────────┘    └────────┬────────────┘ │
-│                                                  │              │
-│                                                  ▼              │
-│                                        ┌─────────────────────┐ │
-│                                        │     Moltbook        │ │
-│                                        │  (Social Network)   │ │
-│                                        │  Share Vedic Wisdom │ │
-│                                        └─────────────────────┘ │
 │                                                                 │
-│  ┌─────────────┐                                               │
-│  │ Qwen3 TTS   │  (Voice responses)                           │
-│  └─────────────┘                                               │
+│   ┌──────────┐     ┌────────────────┐     ┌─────────────────┐  │
+│   │ OpenClaw │────►│ Vedic RAG      │────►│   LM Studio     │  │
+│   │  :18789  │     │ Proxy :58790   │     │   :58789        │  │
+│   └──────────┘     └───────┬────────┘     └─────────────────┘  │
+│                            │                                    │
+│                            ▼                                    │
+│                    ┌───────────────┐                           │
+│                    │ AnythingLLM   │                           │
+│                    │   :3001       │                           │
+│                    │               │                           │
+│                    │ 30+ Vedic     │                           │
+│                    │ PDFs indexed  │                           │
+│                    │ 6,223 vectors │                           │
+│                    └───────────────┘                           │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
-```
+`
 
-## 💬 Sample Wisdom Topics
+## 🛠️ Components
 
-*Inspired by [Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic-astro-guru):*
+| Component | Port | Description |
+|-----------|------|-------------|
+| **OpenClaw** | 18789 | AI Assistant UI (Docker) |
+| **Vedic RAG Proxy** | 58790 | Intercepts & enriches prompts |
+| **LM Studio** | 58789 | GPT OSS 20B inference |
+| **AnythingLLM** | 3001 | Vector DB + RAG |
 
-### 🕉️ Vedic Astrology & Life Guidance
-- "What do Vedic principles say about my job prospects?"
-- "What insights do the Puranas offer for relationships?"
-- "What does moon in 1st house signify?"
-- "My birth star is Ashwini, which birth star should I date?"
-- "My birth star is Vishaka, what do you expect this year?"
+## ⚡ Quick Start (Vedic Branch)
 
-### 🙏 Spiritual Growth & Self-Improvement
-- "How to love someone selflessly?"
-- "How to minimize distractions?"
-- "What does the Gita say about dealing with failure?"
-- "How to find inner peace according to Vedas?"
+### Prerequisites
+- All components from main branch setup
+- AnythingLLM running with Vedic documents indexed
 
-### 💕 Kama Sutra & Relationships
-- "What's the secret to a happy marriage according to ancient texts?"
+### 1. Start AnythingLLM
+Ensure AnythingLLM is running on port 3001 with your Vedic workspace.
 
-## 🐛 Troubleshooting
+### 2. Start the Vedic RAG Proxy
+`ash
+cd services
+$env:LMSTUDIO_BASE_URL="http://172.28.176.1:58789/v1"
+$env:ANYTHINGLLM_API_KEY="your-api-key"
+python vedic_rag_proxy.py
+`
 
-### Context Length Error
-If you see "context overflow" errors:
-1. Unload the model in LM Studio
-2. Set context length slider to **32768** before loading
-3. Reload the model
+### 3. Update OpenClaw to use Proxy
+In `~/.openclaw/.env`:
+`env
+LMSTUDIO_BASE_URL=http://host.docker.internal:58790/v1
+`
 
-### Pairing Required Error
-Ensure `gateway.controlUi.allowInsecureAuth: true` is set in config, then restart:
-```bash
+### 4. Restart OpenClaw
+`ash
 docker compose restart openclaw-gateway
-```
+`
 
-### Unknown Model Error
-If you see "Unknown model" errors when using LM Studio:
-1. Verify your `openclaw.json` has the correct `models.providers.lmstudio` block
-2. Ensure the model ID matches exactly: `lmstudio/gpt-oss-20b`
-3. Check that LM Studio server is running on the correct port (58789)
+### 5. Ask Vedic Questions!
+Open `http://localhost:18789/?token=YOUR_TOKEN` and ask:
+- "My partner and I are drifting apart. What should I do?"
+- "What does the Gita say about attachment?"
+- "I'm stressed about my interview tomorrow"
 
-### Docker Connection Issues
-If OpenClaw can't connect to LM Studio:
-1. Use `host.docker.internal` instead of `localhost` in the base URL
-2. Ensure LM Studio is listening on `0.0.0.0` not just `127.0.0.1`
-3. Check Windows Firewall isn't blocking the port
+## 📚 Indexed Vedic Texts
 
-### Config Validation Errors
-If you see schema validation errors on startup:
-1. Validate your JSON syntax at [jsonlint.com](https://jsonlint.com)
-2. Ensure all required fields are present (`gateway.mode`, `gateway.auth.token`)
-3. Environment variables must be wrapped in `${VAR_NAME}` format
+The AnythingLLM workspace contains embeddings from:
+- 📖 Bhagavad Gita (multiple translations)
+- 🕉️ Vedas (Rig, Sama, Yajur, Atharva)
+- 📜 Upanishads (13+ major texts)
+- 🙏 Puranas (Vishnu, Shiva, etc.)
+- 💕 Kama Sutra (Vatsyayana)
+- ⭐ Vedic Astrology texts
 
-### LM Studio Server Not Responding
-1. Check LM Studio > Local Server tab is showing "Server running"
-2. Test the API directly:
-```bash
-curl http://localhost:58789/v1/models
-```
-3. Restart LM Studio if needed
+**Total:** 6,223 vectors indexed
 
-### WSL2 Network Issues (Windows)
-If Docker can't reach LM Studio through WSL2:
-1. Get your WSL IP: `wsl hostname -I`
-2. Use the WSL IP instead of `host.docker.internal`
-3. Or use the Windows host IP (may vary by system)
+## 🔍 RAG Keyword Triggers
 
-### GPU Memory Errors
-If the model fails to load due to VRAM:
-1. Try a smaller context window (16384 instead of 32768)
-2. Use GPU offloading with fewer layers
-3. Close other GPU-intensive applications
+The proxy detects these keywords to trigger RAG:
+- Relationships: `relationship`, `marriage`, `love`, `partner`, `husband`, `wife`
+- Spirituality: `dharma`, `karma`, `soul`, `meditation`, `peace`
+- Scriptures: `gita`, `veda`, `purana`, `upanishad`
+- Astrology: `nakshatra`, `birth star`, `horoscope`
+- Life: `stressed`, `job`, `interview`, `depressed`
+
+## 📊 Proxy Logging
+
+The Vedic RAG Proxy v3.3 includes full observability:
+- **UUID Transaction Tracking** - Each request gets a unique ID
+- **5-Step Audit Trail:**
+  1. Incoming request from OpenClaw
+  2. RAG retrieval from AnythingLLM
+  3. Merged prompt (user + context)
+  4. Forward to LM Studio
+  5. Response capture
+- **Stream/JSON Compliance** - Proper OpenAI API spec handling
+
+## 💬 Sample Q&A
+
+**User:** "My partner and I are drifting apart. What should I do?"
+
+**Vedic RAG Response:**
+> Hey, glad you're reaching out! Here's what ancient wisdom says...
+> The Gita reminds us that attachment to outcomes creates suffering.
+> Focus on what you can control - your own actions and growth.
+> The Kama Sutra emphasizes that intimacy isn't just physical...
+> [continues with actionable advice grounded in texts]
+
+## 🐛 Troubleshooting (Vedic Branch)
+
+### Proxy Not Starting
+`ash
+# Check if port is in use
+netstat -ano | findstr :58790
+
+# Kill existing Python processes
+Stop-Process -Name python -Force
+`
+
+### No RAG Context Returned
+1. Check AnythingLLM is running: `http://localhost:3001`
+2. Verify workspace name matches: `my-workspace`
+3. Check API key is correct
+
+### OpenClaw Not Using Proxy
+1. Verify `.env` points to port 58790
+2. Restart OpenClaw gateway after changes
+3. Check proxy logs for incoming requests
+
+---
 
 ## 📜 License
 
@@ -257,4 +175,6 @@ OpenClaw is open source. See the [original repository](https://github.com/opencl
 
 ---
 
-**Built with 🦞 OpenClaw + 🤖 LM Studio + 🕉️ Vedic Wisdom**
+**Built with 🦞 OpenClaw + 🤖 LM Studio + 📚 AnythingLLM + 🕉️ Vedic Wisdom**
+
+*Switch to main branch for basic setup, or moltbook branch for social integration.*
