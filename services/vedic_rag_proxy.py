@@ -1,11 +1,13 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Vedic RAG Proxy Server v3.3 - STRICT COMPLIANCE EDITION
+Vedic RAG Proxy Server v3.4 - SECURITY HARDENED EDITION
 Features: UUID Tracking, Stream Capture, Verbose Logging, OpenAI API Spec Compliance
+Security: No hardcoded secrets, localhost binding, env validation
 """
 
 import json
 import os
+import sys
 import uuid
 import requests
 from datetime import datetime
@@ -13,12 +15,25 @@ from flask import Flask, request, Response, stream_with_context
 
 app = Flask(__name__)
 
-# Configuration
-LMSTUDIO_URL = os.getenv("LMSTUDIO_BASE_URL", "http://172.28.176.1:58789/v1")
+# =============================================================================
+# CONFIGURATION - All secrets from environment variables (no defaults for keys)
+# =============================================================================
+LMSTUDIO_URL = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:58789/v1")
 ANYTHINGLLM_URL = os.getenv("ANYTHINGLLM_BASE_URL", "http://localhost:3001")
-ANYTHINGLLM_API_KEY = os.getenv("ANYTHINGLLM_API_KEY", "K6BHF4K-Z88400F-QRB6SDB-EK2SN6S")
+ANYTHINGLLM_API_KEY = os.getenv("ANYTHINGLLM_API_KEY")
 ANYTHINGLLM_WORKSPACE = os.getenv("ANYTHINGLLM_WORKSPACE", "my-workspace")
 PROXY_PORT = int(os.getenv("VEDIC_PROXY_PORT", "58790"))
+
+# Security: Fail fast if API key is missing
+if not ANYTHINGLLM_API_KEY:
+    print("=" * 80)
+    print("🚨 CRITICAL: ANYTHINGLLM_API_KEY environment variable is not set!")
+    print("=" * 80)
+    print("Please set it before running:")
+    print('  $env:ANYTHINGLLM_API_KEY="your-api-key-here"')
+    print("Or copy .env.example to .env and fill in your values")
+    print("=" * 80)
+    sys.exit(1)
 
 VEDIC_KEYWORDS = [
     "relationship", "marriage", "love", "kama", "sutra", "dharma", "karma",
@@ -38,9 +53,10 @@ def log_step(tx_id, step_num, title, content):
     print(f"[{tx_id}] [{timestamp}] STEP {step_num}: {title}")
     print("="*80)
     if isinstance(content, dict) or isinstance(content, list):
-        print(json.dumps(content, indent=2, default=str)[:3000])
+        # Truncate to avoid logging sensitive data
+        print(json.dumps(content, indent=2, default=str)[:2000])
     else:
-        print(str(content)[:3000])
+        print(str(content)[:2000])
     print("-"*80)
 
 def get_text_content(content):
@@ -74,7 +90,7 @@ def query_anythingllm_chat(question, tx_id):
 
         log_step(tx_id, 2, "RAG RETRIEVAL REQUEST", {
             "url": f"{ANYTHINGLLM_URL}/api/v1/workspace/{ANYTHINGLLM_WORKSPACE}/chat",
-            "payload": payload
+            "mode": "query"
         })
         
         response = requests.post(
@@ -145,15 +161,15 @@ def chat_completions():
     data = request.json
     messages = data.get("messages", [])
 
-    # STEP 1: Log incoming request
-    log_step(tx_id, 1, "INCOMING REQUEST FROM OPENCLAW", messages)
+    # STEP 1: Log incoming request (truncated for security)
+    log_step(tx_id, 1, "INCOMING REQUEST FROM OPENCLAW", {"message_count": len(messages)})
 
     if should_query_rag(messages):
         log_step(tx_id, "1b", "VEDIC INTENT DETECTED", "Triggering RAG pipeline...")
         data["messages"] = enhance_messages_with_rag(messages, tx_id)
         
         # STEP 3: Log merged prompt
-        log_step(tx_id, 3, "MERGED PROMPT (USER + RAG)", data["messages"])
+        log_step(tx_id, 3, "MERGED PROMPT (USER + RAG)", {"enhanced": True})
     else:
         log_step(tx_id, "1b", "STANDARD QUERY", "Skipping RAG pipeline.")
 
@@ -171,53 +187,41 @@ def chat_completions():
             f"{LMSTUDIO_URL}/chat/completions",
             json=data,
             headers={"Content-Type": "application/json"},
-            stream=is_streaming,  # Only stream if client requested it
+            stream=is_streaming,
             timeout=300
         )
 
         if is_streaming:
-            # Generator to spy on the stream
             def generate_and_log():
                 full_response_buffer = []
                 try:
                     for chunk in response.iter_content(chunk_size=1024):
                         if chunk:
-                            # Yield to client immediately
                             yield chunk
-                            
-                            # Capture for logs
                             try:
                                 text = chunk.decode('utf-8')
                                 full_response_buffer.append(text)
                             except:
                                 pass
                 finally:
-                    # STEP 5: Log the full capture when stream ends
                     raw_log = "".join(full_response_buffer)
                     duration = (datetime.now() - start_time).total_seconds()
-                    log_step(tx_id, 5, "STREAM COMPLETE (RESPONSE LOG)", {
+                    log_step(tx_id, 5, "STREAM COMPLETE", {
                         "duration_seconds": duration,
-                        "length_bytes": len(raw_log),
-                        "raw_preview": raw_log[:2000] + "..." if len(raw_log) > 2000 else raw_log
+                        "length_bytes": len(raw_log)
                     })
                     print(f"\n### REQUEST COMPLETE - TXN: {tx_id} - Duration: {duration:.2f}s ###\n")
 
             return Response(stream_with_context(generate_and_log()), 
                           content_type=response.headers.get("Content-Type", "text/event-stream"))
         else:
-            # Non-streaming: Return proper JSON per OpenAI API spec
             result = response.json()
             duration = (datetime.now() - start_time).total_seconds()
-            
-            # Extract response content for logging
-            lm_response = result.get("choices", [{}])[0].get("message", {}).get("content", "")
             usage = result.get("usage", {})
             
             log_step(tx_id, 5, "JSON RESPONSE (NON-STREAMING)", {
                 "duration_seconds": duration,
-                "tokens": usage,
-                "response_length": len(lm_response),
-                "response_preview": lm_response[:2000] if lm_response else "NO RESPONSE"
+                "tokens": usage
             })
             print(f"\n### REQUEST COMPLETE - TXN: {tx_id} - Duration: {duration:.2f}s ###\n")
             
@@ -237,26 +241,26 @@ def list_models():
 
 @app.route("/health", methods=["GET"])
 def health():
-    return {"status": "ok", "service": "vedic-rag-proxy", "version": "3.3-strict-compliance"}
+    return {"status": "ok", "service": "vedic-rag-proxy", "version": "3.4-security-hardened"}
 
 @app.route("/", methods=["GET"])
 def index():
-    return {"service": "Vedic RAG Proxy", "version": "3.3", "mode": "strict-compliance-edition"}
+    return {"service": "Vedic RAG Proxy", "version": "3.4", "mode": "security-hardened"}
 
 if __name__ == "__main__":
     print("\n" + "="*80)
-    print("   VEDIC RAG PROXY v3.3 - STRICT COMPLIANCE EDITION")
+    print("   VEDIC RAG PROXY v3.4 - SECURITY HARDENED EDITION")
     print("="*80)
     print(f"   LM Studio:    {LMSTUDIO_URL}")
     print(f"   AnythingLLM:  {ANYTHINGLLM_URL}")
     print(f"   Workspace:    {ANYTHINGLLM_WORKSPACE}")
     print(f"   Proxy Port:   {PROXY_PORT}")
     print("="*80)
-    print("\n   Features:")
-    print("   - UUID Transaction Tracking")
-    print("   - Stream Capture & Logging")
-    print("   - Full Request/Response Audit Trail")
-    print("   - OpenAI API Spec Compliance (stream: true/false)")
+    print("\n   Security Features:")
+    print("   - No hardcoded secrets (env vars required)")
+    print("   - Localhost binding only (127.0.0.1)")
+    print("   - Truncated logs (PII protection)")
     print("="*80)
     print("\n   Waiting for requests...\n")
-    app.run(host="0.0.0.0", port=PROXY_PORT, debug=False, threaded=True)
+    # SECURITY: Bind to localhost only, not 0.0.0.0
+    app.run(host="127.0.0.1", port=PROXY_PORT, debug=False, threaded=True)
