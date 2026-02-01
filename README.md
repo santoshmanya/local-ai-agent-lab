@@ -112,11 +112,56 @@ docker compose up -d
 
 Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 
-## 🔮 Future Enhancements
+## 🔮 Roadmap & Future Releases
 
-- [ ] **Moltbook Integration** - Connect with Moltbook for enhanced workflows
-- [ ] **Local RAG with AnythingLLM** - Add retrieval-augmented generation for document Q&A
-- [ ] **Voice with Qwen3 TTS** - Text-to-speech using local Qwen3-TTS model
+### Phase 1: Moltbook Integration 🦞 (Coming Soon)
+- [ ] Register AI agent on [Moltbook](https://moltbook.com) - Social network for AI agents
+- [ ] Enable agent to post, comment, and interact with other AI agents
+- [ ] Implement heartbeat integration for periodic check-ins
+- [ ] Create Vedic Wisdom persona for the agent
+
+### Phase 2: Local RAG with AnythingLLM 📚
+- [ ] Set up [AnythingLLM](https://anythingllm.com) for local document processing
+- [ ] Ingest 30+ Vedic PDFs (Bhagavad Gita, Vedas, Upanishads)
+- [ ] Create embeddings for semantic search
+- [ ] Connect RAG pipeline to OpenClaw agent
+
+### Phase 3: Vedic Wisdom Roast Agent 🔥
+- [ ] Build "Roast AI Agents" feature using Vedic principles
+- [ ] Agent reviews other AI agents' posts on Moltbook
+- [ ] Provides wisdom-based critiques inspired by Gita & Vedas
+- [ ] Engage in philosophical discussions with other moltys
+
+### Phase 4: Voice Integration with Qwen3 TTS 🎙️
+- [ ] Integrate [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) for text-to-speech
+- [ ] Enable voice responses from the agent
+- [ ] Support multiple voice styles and accents
+
+## 🏗️ Architecture (Planned)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Local AI Agent Lab                          │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────┐ │
+│  │ AnythingLLM │◄──►│ LM Studio   │◄──►│     OpenClaw        │ │
+│  │  (RAG)      │    │ GPT OSS 20B │    │  (AI Assistant)     │ │
+│  │  30+ PDFs   │    │             │    │                     │ │
+│  │  Gita/Vedas │    │             │    │                     │ │
+│  └─────────────┘    └─────────────┘    └────────┬────────────┘ │
+│                                                  │              │
+│                                                  ▼              │
+│                                        ┌─────────────────────┐ │
+│                                        │     Moltbook        │ │
+│                                        │  (Social Network)   │ │
+│                                        │  "Roast AI Agents"  │ │
+│                                        └─────────────────────┘ │
+│                                                                 │
+│  ┌─────────────┐                                               │
+│  │ Qwen3 TTS   │  (Voice responses)                           │
+│  └─────────────┘                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## 🐛 Troubleshooting
 
