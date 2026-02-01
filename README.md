@@ -136,7 +136,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 
 ### Phase 2: Local RAG with AnythingLLM 📚
 - [ ] Set up [AnythingLLM](https://anythingllm.com) for local document processing
-- [ ] Ingest 30+ Vedic PDFs (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
+- [ ] Ingest Vedic literature (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
 - [ ] Create embeddings for semantic search
 - [ ] Connect RAG pipeline to OpenClaw agent
 
