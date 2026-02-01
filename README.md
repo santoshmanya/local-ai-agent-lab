@@ -196,11 +196,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 - "What does the Gita say about dealing with failure?"
 - "How to find inner peace according to Vedas?"
 
-### 💕 Kama Sutra & Relationships (The Fun Stuff 😉)
-- "What does Kama Sutra say about attracting a partner?"
-- "My partner and I have different love languages - what does ancient wisdom suggest?"
-- "What does Kama Sutra say about compatibility beyond physical attraction?"
-- "How to apologize to your partner the right way?"
+### 💕 Kama Sutra & Relationships
 - "What's the secret to a happy marriage according to ancient texts?"
 
 ## 🐛 Troubleshooting
