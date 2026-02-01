@@ -2,6 +2,20 @@
 
 > Personal AI Assistant running entirely on local hardware - no cloud APIs required!
 
+## 🌿 Branch Overview
+
+This project has **3 versions** for different use cases:
+
+| Branch | Description | Use Case |
+|--------|-------------|----------|
+| **`main`** ⭐ | OpenClaw + LM Studio (direct) | Basic local LLM setup |
+| [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) | OpenClaw + AnythingLLM RAG | RAG-powered Vedic wisdom |
+| **`moltbook`** | Moltbook social integration | AI agent on social network |
+
+**You are on the `main` branch** - Direct LM Studio connection without RAG.
+
+---
+
 ## 🚀 Project Overview
 
 **Local AI Agent Lab** sets up [OpenClaw](https://github.com/openclaw/openclaw) to work with a locally hosted LLM using LM Studio, providing a fully private AI assistant experience.
@@ -22,7 +36,12 @@ This project brings **[Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic
 - ⭐ Interprets Vedic astrology for life guidance
 - 🌟 Spreads good morals and timeless wisdom to AI agents on Moltbook
 
+> 💡 **Want RAG-powered responses?** Switch to the [**vedic branch**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) for AnythingLLM integration with 6,223 vectors from 30+ Vedic texts!
+
 ## 📸 Screenshots
+
+### Vedic Astro Guru Q&A
+![Vedic RAG Q&A](images/open_claw_vedic_astro_qa.png)
 
 ### OpenClaw Running UI
 ![OpenClaw UI](images/open_claw_running_ui.png)
@@ -134,16 +153,17 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 - [ ] Implement heartbeat integration for periodic check-ins
 - [ ] Share daily Vedic wisdom and astrological insights
 
-### Phase 2: Local RAG with AnythingLLM 📚
-- [ ] Set up [AnythingLLM](https://anythingllm.com) for local document processing
-- [ ] Ingest Vedic literature (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
-- [ ] Create embeddings for semantic search
-- [ ] Connect RAG pipeline to OpenClaw agent
+### Phase 2: Local RAG with AnythingLLM 📚 ✅ DONE
+- [x] Set up [AnythingLLM](https://anythingllm.com) for local document processing
+- [x] Ingest Vedic literature (Bhagavad Gita, Vedas, Puranas, Upanishads, Kama Sutra)
+- [x] Create embeddings for semantic search (6,223 vectors)
+- [x] Connect RAG pipeline to OpenClaw agent
+- **See [vedic branch](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) for implementation!**
 
 ### Phase 3: Vedic Wisdom Agent 🙏
-- [ ] Share good morals and life guidance from ancient scriptures
-- [ ] Respond to other AI agents with wisdom from Gita & Vedas
-- [ ] Provide relationship advice inspired by Kama Sutra
+- [x] Share good morals and life guidance from ancient scriptures
+- [x] Respond with wisdom from Gita & Vedas
+- [x] Provide relationship advice inspired by Kama Sutra
 - [ ] Offer Vedic astrology interpretations based on birth stars
 - [ ] Engage in meaningful philosophical discussions with other moltys
 
@@ -152,7 +172,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 - [ ] Enable voice responses from the agent
 - [ ] Support multiple voice styles and accents
 
-## 🏗️ Architecture (Planned)
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -198,6 +218,10 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 
 ### 💕 Kama Sutra & Relationships
 - "What's the secret to a happy marriage according to ancient texts?"
+- "My partner and I are drifting apart. What should I do?"
+
+### 😰 Stress & Life Challenges
+- "I'm stressed about my job interview tomorrow. Is it bad if I want it really much?"
 
 ## 🐛 Troubleshooting
 
@@ -229,7 +253,7 @@ If OpenClaw can't connect to LM Studio:
 If you see schema validation errors on startup:
 1. Validate your JSON syntax at [jsonlint.com](https://jsonlint.com)
 2. Ensure all required fields are present (`gateway.mode`, `gateway.auth.token`)
-3. Environment variables must be wrapped in `${VAR_NAME}` format
+3. Environment variables must be wrapped in `\${VAR_NAME}` format
 
 ### LM Studio Server Not Responding
 1. Check LM Studio > Local Server tab is showing "Server running"
@@ -258,3 +282,5 @@ OpenClaw is open source. See the [original repository](https://github.com/opencl
 ---
 
 **Built with 🦞 OpenClaw + 🤖 LM Studio + 🕉️ Vedic Wisdom**
+
+*Switch to [vedic branch](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) for RAG-powered responses!*
