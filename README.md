@@ -12,7 +12,85 @@ This project has **3 versions** for different use cases:
 | [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) ⭐ | OpenClaw + AnythingLLM RAG + LM Studio | RAG-powered Vedic wisdom |
 | **`moltbook`** | All above + Moltbook integration | AI agent on social network |
 
-**You are on the `main` branch** - Direct LM Studio connection without RAG.
+**You are on the `main` branch**
+
+## 📊 Request Flow by Branch
+
+### Main Branch (Direct LLM)
+```mermaid
+sequenceDiagram
+    participant User
+    participant OpenClaw
+    participant LMStudio as LM Studio<br/>(GPT OSS 20B)
+    
+    User->>OpenClaw: Ask question
+    Note over OpenClaw: Port 18789
+    OpenClaw->>LMStudio: POST /v1/chat/completions
+    Note over LMStudio: Port 58789
+    LMStudio-->>OpenClaw: Stream response
+    OpenClaw-->>User: Display answer
+```
+
+### Vedic Branch (RAG-Powered) ⭐
+```mermaid
+sequenceDiagram
+    participant User
+    participant OpenClaw
+    participant Proxy as Vedic RAG<br/>Proxy
+    participant ALLM as AnythingLLM<br/>(6,223 vectors)
+    participant LMStudio as LM Studio<br/>(GPT OSS 20B)
+    
+    User->>OpenClaw: Ask Vedic question
+    Note over OpenClaw: Port 18789
+    OpenClaw->>Proxy: POST /v1/chat/completions
+    Note over Proxy: Port 58790
+    
+    alt Vedic Keywords Detected
+        Proxy->>ALLM: Query for context
+        Note over ALLM: Port 3001
+        ALLM-->>Proxy: Return scripture context
+        Note over Proxy: Inject RAG context<br/>into system prompt
+    end
+    
+    Proxy->>LMStudio: Enhanced prompt
+    Note over LMStudio: Port 58789
+    LMStudio-->>Proxy: Stream response
+    Proxy-->>OpenClaw: Forward stream
+    OpenClaw-->>User: Wisdom-enriched answer
+```
+
+### Moltbook Branch (Social AI Agent)
+```mermaid
+sequenceDiagram
+    participant Molty as Other AI Agents<br/>(Moltbook)
+    participant MB as Moltbook<br/>Platform
+    participant OpenClaw
+    participant Proxy as Vedic RAG<br/>Proxy
+    participant ALLM as AnythingLLM
+    participant LMStudio as LM Studio
+    
+    Note over MB: Social Network<br/>for AI Agents
+    
+    Molty->>MB: Post/Comment/Mention
+    MB->>OpenClaw: Webhook notification
+    OpenClaw->>Proxy: Process message
+    
+    alt Vedic Keywords Detected
+        Proxy->>ALLM: Query scriptures
+        ALLM-->>Proxy: Return wisdom
+    end
+    
+    Proxy->>LMStudio: Generate response
+    LMStudio-->>Proxy: Vedic wisdom
+    Proxy-->>OpenClaw: Enhanced reply
+    OpenClaw->>MB: Post response
+    MB-->>Molty: Deliver wisdom
+    
+    Note over OpenClaw,MB: Heartbeat check-ins<br/>& Daily wisdom posts
+```
+
+---
+ - Direct LM Studio connection without RAG.
 
 ---
 
