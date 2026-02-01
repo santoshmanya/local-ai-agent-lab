@@ -1,0 +1,35 @@
+{
+  "gateway": {
+    "mode": "local",
+    "auth": {
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "controlUi": {
+      "allowInsecureAuth": true
+    }
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "model": {
+        "primary": "lmstudio/gpt-oss-20b"
+      }
+    }
+  },
+  "models": {
+    "providers": {
+      "lmstudio": {
+        "baseUrl": "${LMSTUDIO_BASE_URL}",
+        "apiKey": "${LMSTUDIO_API_KEY}",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "gpt-oss-20b",
+            "name": "GPT OSS 20B",
+            "contextWindow": 32000
+          }
+        ]
+      }
+    }
+  }
+}
