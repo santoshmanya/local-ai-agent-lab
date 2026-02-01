@@ -8,9 +8,9 @@ This project has **3 versions** for different use cases:
 
 | Branch | Description | Use Case |
 |--------|-------------|----------|
-| **main** | OpenClaw + LM Studio (direct) | Basic local LLM, no RAG |
-| **edic** ⭐ | OpenClaw + AnythingLLM RAG | Focused Vedic wisdom responses |
-| **moltbook** | Moltbook social integration | AI agent on social network |
+| **`main`** | OpenClaw + LM Studio | Basic local LLM, no RAG |
+| [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) ⭐ | OpenClaw + AnythingLLM RAG + LM Studio | RAG-powered Vedic wisdom |
+| **`moltbook`** | All above + Moltbook integration | AI agent on social network |
 
 **You are on the edic branch** - This adds RAG-powered responses from 30+ Vedic texts!
 
