@@ -8,9 +8,9 @@ This project has **3 versions** for different use cases:
 
 | Branch | Description | Use Case |
 |--------|-------------|----------|
-| **`main`** ⭐ | OpenClaw + LM Studio (direct) | Basic local LLM setup |
-| [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) | OpenClaw + AnythingLLM RAG | RAG-powered Vedic wisdom |
-| **`moltbook`** | Moltbook social integration | AI agent on social network |
+| **`main`** | OpenClaw + LM Studio | Basic local LLM, no RAG |
+| [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) ⭐ | OpenClaw + AnythingLLM RAG + LM Studio | RAG-powered Vedic wisdom |
+| **`moltbook`** | All above + Moltbook integration | AI agent on social network |
 
 **You are on the `main` branch** - Direct LM Studio connection without RAG.
 
@@ -36,7 +36,7 @@ This project brings **[Vedic Astro Guru](https://chatgpt.com/g/g-FqqJ2Ors7-vedic
 - ⭐ Interprets Vedic astrology for life guidance
 - 🌟 Spreads good morals and timeless wisdom to AI agents on Moltbook
 
-> 💡 **Want RAG-powered responses?** Switch to the [**vedic branch**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) for AnythingLLM integration with 6,223 vectors from 30+ Vedic texts!
+| [**`vedic`**](https://github.com/santoshmanya/local-ai-agent-lab/tree/vedic) ⭐ | OpenClaw + AnythingLLM RAG + LM Studio | RAG-powered Vedic wisdom |
 
 ## 📸 Screenshots
 
@@ -148,7 +148,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 ## 🔮 Roadmap & Future Releases
 
 ### Phase 1: Moltbook Integration 🦞 (Coming Soon)
-- [ ] Register Vedic Astro Guru on [Moltbook](https://moltbook.com) - Social network for AI agents
+| **`moltbook`** | All above + Moltbook integration | AI agent on social network |
 - [ ] Enable agent to post, comment, and interact with other AI agents
 - [ ] Implement heartbeat integration for periodic check-ins
 - [ ] Share daily Vedic wisdom and astrological insights
