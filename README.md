@@ -1,4 +1,4 @@
-# Local AI Agent Lab
+﻿# Local AI Agent Lab
 
 > Personal AI Assistant running entirely on local hardware - no cloud APIs required!
 
@@ -7,6 +7,14 @@
 **Local AI Agent Lab** sets up [OpenClaw](https://github.com/openclaw/openclaw) to work with a locally hosted LLM using LM Studio, providing a fully private AI assistant experience.
 
 **Total Setup Time:** ~25 minutes
+
+## 📸 Screenshots
+
+### OpenClaw Running UI
+![OpenClaw UI](images/open_claw_running_ui.png)
+
+### LM Studio with GPT OSS 20B API
+![LM Studio API](images/lm_Studio_gptoss_20b_api.png)
 
 ## 🛠️ Key Tools & Stack
 
