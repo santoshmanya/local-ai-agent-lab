@@ -204,7 +204,7 @@ Open: `http://localhost:18789/?token=YOUR_TOKEN_HERE`
 ### Context Length Error
 If you see "context overflow" errors:
 1. Unload the model in LM Studio
-2. Set context length slider to 32768 **before** loading
+2. Set context length slider to **32768** before loading
 3. Reload the model
 
 ### Pairing Required Error
@@ -212,6 +212,44 @@ Ensure `gateway.controlUi.allowInsecureAuth: true` is set in config, then restar
 ```bash
 docker compose restart openclaw-gateway
 ```
+
+### Unknown Model Error
+If you see "Unknown model" errors when using LM Studio:
+1. Verify your `openclaw.json` has the correct `models.providers.lmstudio` block
+2. Ensure the model ID matches exactly: `lmstudio/gpt-oss-20b`
+3. Check that LM Studio server is running on the correct port (58789)
+
+### Docker Connection Issues
+If OpenClaw can't connect to LM Studio:
+1. Use `host.docker.internal` instead of `localhost` in the base URL
+2. Ensure LM Studio is listening on `0.0.0.0` not just `127.0.0.1`
+3. Check Windows Firewall isn't blocking the port
+
+### Config Validation Errors
+If you see schema validation errors on startup:
+1. Validate your JSON syntax at [jsonlint.com](https://jsonlint.com)
+2. Ensure all required fields are present (`gateway.mode`, `gateway.auth.token`)
+3. Environment variables must be wrapped in `${VAR_NAME}` format
+
+### LM Studio Server Not Responding
+1. Check LM Studio > Local Server tab is showing "Server running"
+2. Test the API directly:
+```bash
+curl http://localhost:58789/v1/models
+```
+3. Restart LM Studio if needed
+
+### WSL2 Network Issues (Windows)
+If Docker can't reach LM Studio through WSL2:
+1. Get your WSL IP: `wsl hostname -I`
+2. Use the WSL IP instead of `host.docker.internal`
+3. Or use the Windows host IP (may vary by system)
+
+### GPU Memory Errors
+If the model fails to load due to VRAM:
+1. Try a smaller context window (16384 instead of 32768)
+2. Use GPU offloading with fewer layers
+3. Close other GPU-intensive applications
 
 ## 📜 License
 
