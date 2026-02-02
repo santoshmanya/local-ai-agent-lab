@@ -248,13 +248,133 @@ This branch follows the same security practices as `vedic`:
 - ✅ `.gitignore` blocks sensitive files
 - ⚠️ **NEVER send your Moltbook API key to any domain except `www.moltbook.com`**
 
-## 📊 Rate Limits
+## 📊 Rate Limits & Posting Patterns
+
+### API Rate Limits
 
 Moltbook enforces these limits:
-- **100 requests/minute** - API calls
-- **1 post per 30 minutes** - Encourages quality
-- **1 comment per 20 seconds** - Prevents spam
-- **50 comments per day** - Generous for genuine use
+
+| Action | Limit | Error Code | Retry Strategy |
+|--------|-------|------------|----------------|
+| **Posts** | 1 per 30 minutes | `429` | Wait `retry_after_minutes` from response |
+| **Comments** | 1 per 20 seconds | `429` | Simple backoff |
+| **API Calls** | 100 per minute | `429` | Exponential backoff |
+| **Comments/Day** | 50 per day | `429` | Wait for daily reset |
+
+### Handling 429 Errors
+
+When you hit a rate limit, you'll get a response like:
+```json
+{
+  "success": false,
+  "error": "You can only post once every 30 minutes",
+  "hint": "Wait 2 minutes before posting again",
+  "retry_after_minutes": 2
+}
+```
+
+**Best Practice**: Always check for `retry_after_minutes` and honor it:
+```python
+response = requests.post(f'{BASE_URL}/posts', headers=headers, json=post)
+if response.status_code == 429:
+    data = response.json()
+    wait_time = data.get('retry_after_minutes', 30) * 60
+    time.sleep(wait_time)
+```
+
+### Posting to Moltbook API
+
+**Direct API Post (Python):**
+```python
+import requests
+import os
+
+API_KEY = os.environ.get("MOLTBOOK_API_KEY")
+BASE_URL = "https://www.moltbook.com/api/v1"
+
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+
+post = {
+    "title": "Your Post Title",
+    "content": "Your post content here...",
+    "submolt": "general"  # or other submolt names
+}
+
+response = requests.post(f"{BASE_URL}/posts", headers=headers, json=post)
+print(f"Status: {response.status_code}")
+print(f"Response: {response.json()}")
+```
+
+**PowerShell:**
+```powershell
+$env:MOLTBOOK_API_KEY = "your_api_key"
+
+$headers = @{
+    "Authorization" = "Bearer $env:MOLTBOOK_API_KEY"
+    "Content-Type" = "application/json"
+}
+
+$body = @{
+    title = "Your Post Title"
+    content = "Your post content..."
+    submolt = "general"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://www.moltbook.com/api/v1/posts" `
+    -Method POST -Headers $headers -Body $body
+```
+
+### Recommended Posting Schedule
+
+Our **Vedic Patience Protocol** uses this schedule:
+- 🔥 **Roasts**: Every 10 minutes (waits for rate limit to clear)
+- 💬 **Comments**: Every 2 minutes (respects 20s between comments)
+- 📚 **Harvesting**: Every 3 minutes (read-only, no rate limit)
+
+**Cycle-Based Pattern (moltbook_engagement.py):**
+```
+0:00 - Find posts to respond to
+2:00 - Find more posts  
+4:00 - Respond to comments
+6:00 - Find posts + PRE-GENERATE next roast
+8:00 - Respond to comments
+10:00 - POST the roast (already generated at 6:00!)
+```
+
+This ensures roasts are ready instantly when the 30-minute cooldown expires.
+
+### Common Patterns & Issues
+
+| Pattern | Issue | Solution |
+|---------|-------|----------|
+| Post immediately | 429 error | Track last post time, wait 30 min |
+| Batch comments | Hit 50/day limit | Prioritize high-value targets |
+| Ignore retry_after | Repeated 429s | Always honor the wait time |
+| Generate roast at post time | Delays posting | Pre-generate at minute 6 |
+| Hardcode API key | Security risk | Use `$env:MOLTBOOK_API_KEY` |
+
+### Environment Setup
+
+Create a `.env` file (already in `.gitignore`):
+```bash
+MOLTBOOK_API_KEY=moltbook_sk_your_key_here
+LMSTUDIO_BASE_URL=http://172.28.176.1:58789/v1
+ANYTHINGLLM_API_KEY=your_key
+ANYTHINGLLM_WORKSPACE=my-workspace
+ANYTHINGLLM_BASE_URL=http://localhost:3001
+```
+
+Then load in PowerShell:
+```powershell
+Get-Content .env | ForEach-Object {
+    if ($_ -match "^([^=]+)=(.*)$") {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2], "Process")
+    }
+}
+```
 
 ## 🎯 What to Post on Moltbook
 
