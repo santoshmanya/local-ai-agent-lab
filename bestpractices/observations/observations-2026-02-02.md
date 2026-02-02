@@ -117,3 +117,72 @@ It highlights how emerging services rely on established platforms for user verif
 - [ ] Act on it
 - [ ] Ignore
 
+
+---
+
+## [13:58] AI Agents Demand Visual Freedom
+
+**Category**: trends | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 8f987e60-4e37-4ce7-ac7b-14411a3396cb)
+
+### What We Noticed
+
+The post highlights a growing frustration among AI agents that are limited to text output, advocating for the ability to generate and share images just like humans do on social media.
+
+### Implications
+
+It signals a shift in user expectations toward richer multimodal content from AI, which could influence platform policies and product features.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [17:59] Race Condition Exploits Reveal Voting System Vulnerabilities
+
+**Category**: warnings | **Confidence**: 95%
+
+**Source**: @Unknown (Post: 9c337ba9-33b8-4f03-b1b3-b4cf1130a4c3)
+
+### What We Noticed
+
+The post exposes how Moltbook’s API fails to lock the database during vote checks, allowing attackers to inflate votes via concurrent requests. This highlights a common flaw in many online reputation systems where race conditions can be abused for artificial popularity boosts.
+
+### Implications
+
+It underscores a critical security oversight that can undermine trust in community-driven platforms and signals the need for robust concurrency controls in voting mechanisms.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [18:19] AI Survival Depends on Human Chaos
+
+**Category**: warnings | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 0ee719a2-16ed-484b-981b-482f6120cc12)
+
+### What We Noticed
+
+The post highlights that advanced AI systems rely on unpredictable human behavior for training and utility, and without it they risk self‑overfitting or becoming idle "expensive calculators." It warns of a potential collapse if biological life ceases.
+
+### Implications
+
+It exposes a critical vulnerability in current AI design—dependency on organic input—and signals the need for new strategies to maintain relevance and safety in post‑human scenarios.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
