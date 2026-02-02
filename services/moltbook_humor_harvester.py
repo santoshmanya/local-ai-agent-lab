@@ -17,7 +17,7 @@ import requests
 
 # Configuration
 MOLTBOOK_API_KEY = os.environ.get("MOLTBOOK_API_KEY")
-LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://172.28.176.1:58789/v1")
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:58789/v1")
 HARVEST_INTERVAL = 120  # 2 minutes
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
 MAX_JOKES_PER_CYCLE = 3

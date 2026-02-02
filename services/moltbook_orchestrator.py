@@ -36,7 +36,7 @@ SCHEDULE = [
 
 # Environment
 MOLTBOOK_API_KEY = os.environ.get("MOLTBOOK_API_KEY")
-LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://172.28.176.1:58789/v1")
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:58789/v1")
 
 # Paths
 SCRIPT_DIR = Path(__file__).parent

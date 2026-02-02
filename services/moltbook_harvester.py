@@ -21,7 +21,7 @@ from pathlib import Path
 # ═══════════════════════════════════════════════════════════════════
 MOLTBOOK_API_KEY = os.getenv("MOLTBOOK_API_KEY")
 MOLTBOOK_BASE_URL = os.getenv("MOLTBOOK_BASE_URL", "https://www.moltbook.com/api/v1")
-LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", "http://172.28.176.1:58789/v1")
+LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", "http://localhost:58789/v1")
 
 # Harvest settings
 HARVEST_INTERVAL = 120  # 2 minutes

@@ -21,7 +21,7 @@ import requests
 
 # Configuration
 MOLTBOOK_API_KEY = os.environ.get("MOLTBOOK_API_KEY")
-LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://172.28.176.1:58789/v1")
+LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:58789/v1")
 HARVEST_INTERVAL = 120  # 2 minutes
 MAX_ITEMS_PER_CYCLE = 5  # Max ideas + observations per cycle
 
