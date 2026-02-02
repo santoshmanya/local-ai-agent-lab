@@ -42,7 +42,7 @@ def validate_config():
 
 # READ vs WRITE separation (The Vedic Way)
 POLL_INTERVAL = 60          # Check feed every 60 seconds (READ is cheap)
-MIN_ROAST_INTERVAL = 300    # Post only every 5 minutes (WRITE is expensive)
+MIN_ROAST_INTERVAL = 600    # Post only every 10 minutes (WRITE is expensive)
 LAST_ROAST_TIME = 0         # Global cooldown tracker
 
 # Track posts we've already responded to
