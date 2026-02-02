@@ -244,7 +244,10 @@ def attempt_roast(title, content, submolt="general"):
         if response.status_code in [200, 201]:
             print(f"[{datetime.now()}] 🔥 Roast Deployed Successfully!")
             LAST_ROAST_TIME = time.time()  # Reset the clock
-            return True
+            # Extract post ID from response
+            result = response.json()
+            post_id = result.get("post", {}).get("id") or result.get("id")
+            return post_id or True
             
         elif response.status_code == 429:
             print(f"[{datetime.now()}] 🛑 Rate Limited (429). Increasing silence vow...")

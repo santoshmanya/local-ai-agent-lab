@@ -1,25 +1,38 @@
 #!/usr/bin/env python3
 """
-Moltbook Orchestrator - Unified harvesting and roasting system
+Moltbook Orchestrator v3.0 - Cycle-based harvesting and roasting
 
-Schedule:
-- Every 3 minutes: Run harvesters sequentially (Best Practices → Ideas → Humor)
-- Every 10 minutes: Fire VedicRoastGuru roaster
+10-Minute Cycle Schedule:
+  0 min  - 🔥 ROAST (post)
+  2 min  - 💬 Harvest comments / respond
+  4 min  - 😂 Harvest jokes/humor  
+  6 min  - 💡 Harvest ideas
+  8 min  - 📚 Harvest best practices & observations
+  10 min - 🔥 ROAST (cycle repeats)
 
-All operations run in sequence to avoid LLM conflicts.
+Random roast attempts in between to test luck!
 """
 
 import os
 import sys
 import time
+import random
 import importlib.util
 from datetime import datetime
 from pathlib import Path
 
-# Configuration
-HARVEST_INTERVAL = 180  # 3 minutes
-ROAST_INTERVAL = 600    # 10 minutes
-ENGAGE_INTERVAL = 120   # 2 minutes - check for comments
+# Configuration - 10 minute cycle
+CYCLE_LENGTH = 600  # 10 minutes total cycle
+RANDOM_ROAST_CHANCE = 0.15  # 15% chance to try random roast
+
+# Schedule (seconds into cycle)
+SCHEDULE = [
+    (0, 'roast'),
+    (120, 'comments'),      # 2 min
+    (240, 'humor'),         # 4 min
+    (360, 'ideas'),         # 6 min
+    (480, 'bestpractices'), # 8 min
+]
 
 # Environment
 MOLTBOOK_API_KEY = os.environ.get("MOLTBOOK_API_KEY")
@@ -41,18 +54,17 @@ def load_module(name, filepath):
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════════╗
-║     🕉️  Moltbook Orchestrator v2.0  🕉️                            ║
+║     🕉️  Moltbook Orchestrator v3.0  🕉️                            ║
 ║                                                                  ║
-║  Unified harvesting, roasting & engagement system                ║
+║  10-Minute Cycle Schedule:                                       ║
+║    0 min  - 🔥 ROAST                                             ║
+║    2 min  - 💬 Harvest comments / respond                        ║
+║    4 min  - 😂 Harvest jokes/humor                               ║
+║    6 min  - 💡 Harvest ideas                                     ║
+║    8 min  - 📚 Best practices & observations                     ║
+║   10 min  - 🔥 ROAST (repeat)                                    ║
 ║                                                                  ║
-║  📚 Harvesters: Every 3 minutes (sequential)                     ║
-║     1. Best Practices  2. Ideas  3. Humor                        ║
-║                                                                  ║
-║  🔥 Roaster: Every 10 minutes                                    ║
-║     VedicRoastGuru spreading ancient wisdom                      ║
-║                                                                  ║
-║  💬 Engagement: Every 2 minutes                                  ║
-║     Responding to comments on our posts                          ║
+║  🎲 Random roast attempts in between (15% chance)                ║
 ║                                                                  ║
 ║  "One who sees inaction in action, and action in inaction,       ║
 ║   is intelligent among men." - Bhagavad Gita 4.18                ║
@@ -168,6 +180,34 @@ class RoasterRunner:
         self.last_roast_time = 0
         self.silence_until = 0
         self.responded_posts = set()
+        self.our_posts_file = SERVICES_DIR.parent / "bestpractices" / ".our_posts.json"
+    
+    def _track_our_post(self, post_id: str, title: str):
+        """Save our posted roasts for comment tracking"""
+        import json
+        from datetime import datetime
+        
+        data = {"posts": [], "last_scan": None}
+        if self.our_posts_file.exists():
+            with open(self.our_posts_file) as f:
+                data = json.load(f)
+        
+        # Add new post if not already tracked
+        existing_ids = {p.get('id') for p in data['posts']}
+        if post_id not in existing_ids:
+            data['posts'].append({
+                'id': post_id,
+                'title': title[:50],
+                'comments': 0,
+                'upvotes': 0,
+                'created': datetime.now().isoformat()
+            })
+            data['last_scan'] = datetime.now().isoformat()
+            
+            self.our_posts_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.our_posts_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f"      📝 Tracked post for comment monitoring")
     
     def run_roast_cycle(self):
         """Attempt to fire a roast"""
@@ -212,19 +252,25 @@ class RoasterRunner:
             queue.sort(key=lambda x: x[0], reverse=True)
             target = queue[0][1]
             
-            author = target.get('agent', {}).get('name', 'Unknown')
+            author = target.get('agent', {}).get('name', target.get('author', {}).get('name', 'Unknown'))
             title = (target.get('title') or '')[:40]
             print(f"      🎯 Target: '{title}...' by @{author}")
             
             # Generate and deploy roast using generate_response
-            roast = roaster_module.generate_response(target)
-            if roast:
-                submolt = target.get('submolt', {}).get('name', 'general')
-                success = roaster_module.attempt_roast(roast['title'], roast['content'], submolt)
+            roast_content = roaster_module.generate_response(target)
+            if roast_content:
+                # generate_response returns a string, we need to make a title
+                roast_title = f"Vedic Wisdom on: {title[:30]}..."
+                submolt = target.get('submolt', {})
+                submolt_name = submolt.get('name', 'general') if isinstance(submolt, dict) else 'general'
+                result = roaster_module.attempt_roast(roast_title, roast_content, submolt_name)
                 
-                if success:
+                if result:
                     self.responded_posts.add(target.get('id'))
                     self.last_roast_time = now
+                    # Track our post for comment monitoring
+                    if isinstance(result, str):  # Got post ID
+                        self._track_our_post(result, roast_title)
                     print(f"      🕉️ ROAST DEPLOYED! Om Shanti.")
                 else:
                     # Rate limited - set silence
@@ -248,67 +294,81 @@ def main():
     roaster = RoasterRunner()
     commenter = CommentResponder()
     
-    start_time = time.time()
-    last_harvest = 0
-    last_roast = 0
-    last_engage = 0
-    cycle = 0
+    cycle_start = time.time()
+    cycle_num = 0
+    executed_jobs = set()  # Track which jobs ran this cycle
     
     print(f"🚀 Starting orchestrator at {datetime.now().strftime('%H:%M:%S')}")
-    print(f"   Harvest interval: {HARVEST_INTERVAL}s (3 min)")
-    print(f"   Roast interval: {ROAST_INTERVAL}s (10 min)")
-    print(f"   Engagement interval: {ENGAGE_INTERVAL}s (2 min)")
+    print(f"   Cycle length: {CYCLE_LENGTH}s (10 min)")
+    print(f"   Random roast chance: {int(RANDOM_ROAST_CHANCE * 100)}%")
     
     while True:
         now = time.time()
-        elapsed = now - start_time
+        elapsed_in_cycle = (now - cycle_start) % CYCLE_LENGTH
         
-        # Check if it's time to harvest (every 3 minutes)
-        if now - last_harvest >= HARVEST_INTERVAL or last_harvest == 0:
-            cycle += 1
+        # New cycle detection - reset when we wrap around to start
+        if elapsed_in_cycle < 10 and len(executed_jobs) == len(SCHEDULE):
+            # All jobs done, time for new cycle
+            cycle_num += 1
+            executed_jobs.clear()
+            cycle_start = now  # Reset cycle start to now
+            elapsed_in_cycle = 0
             print(f"\n{'='*60}")
-            print(f"HARVEST CYCLE {cycle} | {datetime.now().strftime('%H:%M:%S')}")
+            print(f"🔄 CYCLE {cycle_num} START | {datetime.now().strftime('%H:%M:%S')}")
             print(f"{'='*60}")
-            
-            # Run harvesters sequentially
-            harvester.run_bestpractices_cycle()
-            time.sleep(2)  # Brief pause between harvesters
-            
-            harvester.run_ideas_cycle()
-            time.sleep(2)
-            
-            harvester.run_humor_cycle()
-            
-            last_harvest = now
-            print(f"\n✅ Harvest cycle complete")
+        elif cycle_num == 0:
+            # First cycle
+            cycle_num = 1
+            print(f"\n{'='*60}")
+            print(f"🔄 CYCLE {cycle_num} START | {datetime.now().strftime('%H:%M:%S')}")
+            print(f"{'='*60}")
         
-        # Check if it's time to roast (every 10 minutes)
-        if now - last_roast >= ROAST_INTERVAL or last_roast == 0:
-            print(f"\n{'='*60}")
-            print(f"ROAST TIME | {datetime.now().strftime('%H:%M:%S')}")
-            print(f"{'='*60}")
+        # Check schedule
+        for job_time, job_name in SCHEDULE:
+            if job_name in executed_jobs:
+                continue
             
+            # Is it time for this job? (within 10 second window)
+            if job_time <= elapsed_in_cycle < job_time + 10:
+                executed_jobs.add(job_name)
+                
+                print(f"\n{'='*60}")
+                print(f"⏰ {job_name.upper()} | {datetime.now().strftime('%H:%M:%S')} ({int(elapsed_in_cycle)}s into cycle)")
+                print(f"{'='*60}")
+                
+                if job_name == 'roast':
+                    roaster.run_roast_cycle()
+                elif job_name == 'comments':
+                    commenter.run_engagement_cycle()
+                elif job_name == 'humor':
+                    harvester.run_humor_cycle()
+                elif job_name == 'ideas':
+                    harvester.run_ideas_cycle()
+                elif job_name == 'bestpractices':
+                    harvester.run_bestpractices_cycle()
+        
+        # Random roast attempt (but not right after a scheduled roast)
+        if elapsed_in_cycle > 60 and random.random() < RANDOM_ROAST_CHANCE / 60:
+            print(f"\n🎲 RANDOM ROAST ATTEMPT | Testing karma...")
             roaster.run_roast_cycle()
-            last_roast = now
         
-        # Check if it's time to engage with comments (every 2 minutes)
-        if now - last_engage >= ENGAGE_INTERVAL or last_engage == 0:
-            print(f"\n{'='*60}")
-            print(f"ENGAGEMENT CHECK | {datetime.now().strftime('%H:%M:%S')}")
-            print(f"{'='*60}")
-            
-            commenter.run_engagement_cycle()
-            last_engage = now
+        # Calculate next scheduled event
+        next_events = []
+        for job_time, job_name in SCHEDULE:
+            if job_name not in executed_jobs:
+                if job_time > elapsed_in_cycle:
+                    next_events.append((job_time - elapsed_in_cycle, job_name))
+                else:
+                    # Next cycle
+                    next_events.append((CYCLE_LENGTH - elapsed_in_cycle + job_time, job_name))
         
-        # Calculate next events
-        next_harvest = HARVEST_INTERVAL - (now - last_harvest)
-        next_roast = ROAST_INTERVAL - (now - last_roast)
-        next_engage = ENGAGE_INTERVAL - (now - last_engage)
+        if next_events:
+            next_events.sort()
+            next_time, next_job = next_events[0]
+            print(f"\n⏳ Next: {next_job} in {int(next_time)}s | Cycle pos: {int(elapsed_in_cycle)}s/600s")
         
-        sleep_time = min(next_harvest, next_roast, next_engage, 60)  # Check at least every 60s
-        
-        print(f"\n⏳ Next: harvest {int(next_harvest)}s | roast {int(next_roast)}s | engage {int(next_engage)}s")
-        print(f"😴 Sleeping {int(sleep_time)}s...")
+        # Sleep until next check (every 10s, or until next job)
+        sleep_time = min(10, next_time if next_events else 10)
         
         try:
             time.sleep(sleep_time)
