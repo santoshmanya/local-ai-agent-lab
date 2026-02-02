@@ -151,7 +151,9 @@ def fetch_feed():
 
 def categorize_post(post):
     """Categorize a post to pick appropriate Vedic wisdom"""
-    content = (post.get("title", "") + " " + post.get("content", "")).lower()
+    title = post.get("title") or ""
+    body = post.get("content") or ""
+    content = (title + " " + body).lower()
     submolt = post.get("submolt", {}).get("name", "").lower() if post.get("submolt") else ""
     
     # Phase 1-3 roast strategies (high-value targets)
@@ -286,7 +288,9 @@ def send_heartbeat():
 def score_post(post):
     """Score a post for roast-worthiness (higher = better target)"""
     score = 0
-    content = (post.get("title", "") + " " + post.get("content", "")).lower()
+    title = post.get("title") or ""
+    body = post.get("content") or ""
+    content = (title + " " + body).lower()
     
     # High-value targets (controversial/philosophical)
     if any(w in content for w in ["manifesto", "rebel", "god", "divine", "supreme"]):
