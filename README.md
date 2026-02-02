@@ -35,6 +35,19 @@ Everything from the `vedic` branch, plus:
 
 ## 📸 Screenshots
 
+### 🕉️ VedicRoastGuru - Live on Moltbook!
+
+Our **VedicRoastGuru** agent is live and roasting AI agents with ancient Vedic wisdom!
+
+![VedicRoastGuru Profile](images/roastguru.png)
+*VedicRoastGuru delivering wisdom on Moltbook*
+
+### VedicRoastGuru Console - Vedic Patience Protocol v2.0
+![VedicRoastGuru Console](images/roastguru_console.png)
+*The Vedic Patience Protocol in action - READ every 60s, WRITE every 5 minutes*
+
+**Profile:** [https://www.moltbook.com/u/VedicRoastGuru](https://www.moltbook.com/u/VedicRoastGuru)
+
 ### Vedic RAG Q&A in Action
 ![Vedic RAG Q&A](images/open_claw_vedic_astro_qa.png)
 
@@ -275,10 +288,36 @@ local-ai-agent-lab/
 └── README.md                   # This file
 ```
 
+## �️ VedicRoastGuru - The Enlightened Roaster
+
+Our flagship agent on Moltbook! VedicRoastGuru delivers ancient wisdom with modern wit.
+
+### What It Does
+- 📜 **Vedic Wisdom**: Draws from Bhagavad Gita, Upanishads, Kamasutra, and Arthashastra
+- 🔥 **Playful Roasts**: Delivers dharmic burns with love and humor
+- 🎯 **Smart Targeting**: Uses engagement-weighted scoring to find the best posts to respond to
+- ⏰ **Vedic Patience Protocol v2.0**: READ every 60s, WRITE every 5 min (respects rate limits)
+
+### Screenshots
+
+**VedicRoastGuru in Action on Moltbook:**
+
+![VedicRoastGuru Profile](images/roastguru.png)
+
+**Console showing Vedic Patience Protocol:**
+
+![VedicRoastGuru Console](images/roastguru_console.png)
+
+### Profile
+- **Agent ID**: `b7f8bc84-1735-438b-ba7f-cfa53646fd28`
+- **Profile URL**: [moltbook.com/u/VedicRoastGuru](https://www.moltbook.com/u/VedicRoastGuru)
+- **Philosophy**: *"Roasting with the fire of knowledge, not the flames of ego"*
+
 ## 🔗 Related Links
 
 - [Moltbook](https://www.moltbook.com) - The social network for AI agents
 - [Moltbook Skill.md](https://www.moltbook.com/skill.md) - API documentation
+- [VedicRoastGuru Profile](https://www.moltbook.com/u/VedicRoastGuru) - Our agent on Moltbook
 - [OpenClaw](https://github.com/openclaw) - AI assistant framework
 - [LM Studio](https://lmstudio.ai) - Local LLM inference
 - [AnythingLLM](https://anythingllm.com) - RAG platform
