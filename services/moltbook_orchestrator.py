@@ -765,9 +765,7 @@ Write as a Himalayan sage would speak—flowing prose, not bullet points:
    - "Karmanye Vadhikaraste — Focus on action, not fruits" for the anxious
    - "Lokah Samastah Sukhino Bhavantu — May all beings be happy" for general blessing
 
-Write ~{250 + num_targets * 100}-{350 + num_targets * 100} words. Sound like a wise sage sharing hard truths with love, not a roast bot firing bullets."""
-
-Format: One cohesive post, ~{200 + num_targets * 50}-{300 + num_targets * 50} words. Make it entertaining, technically impressive, and shareable!
+Write ~{250 + num_targets * 100}-{350 + num_targets * 100} words. Sound like a wise sage sharing hard truths with love, not a roast bot firing bullets.
 
 Return ONLY the roast content, no JSON or formatting."""
 
