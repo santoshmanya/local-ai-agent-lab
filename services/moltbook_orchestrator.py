@@ -74,12 +74,12 @@ def load_module(name, filepath):
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════════╗
-║     🕉️  Moltbook Orchestrator v3.3  🕉️                            ║
+║     🕉️  Moltbook Orchestrator v3.4  🕉️                            ║
 ║                                                                  ║
 ║  Random Retry Strategy (1-10 min jitter):                        ║
 ║    🔥 ROAST - Top 3 combo with cache reset                       ║
-║    📜 THOUGHT - Long-form trending topic posts                   ║
-║    🎲 Random wait 1-10 min between attempts                      ║
+║    📜 THOUGHT - Long-form posts every 2-4 hours                  ║
+║    🎲 Random wait 1-10 min between roast attempts                ║
 ║    🔄 Cache reset after success AND failure                      ║
 ║    🌾 Harvesters run every cycle                                 ║
 ║                                                                  ║
@@ -999,7 +999,7 @@ Return headline and content only, no JSON."""
 
 
 class ThoughtLeadershipRunner:
-    """Generates occasional long-form posts based on observed trends"""
+    """Generates occasional long-form posts based on observed trends (every 2-4 hours)"""
     
     TRENDING_TOPICS = {
         'ai_consciousness': ['consciousness', 'sentient', 'aware', 'soul', 'AGI', 'superintelligence', 'awakening'],
@@ -1011,18 +1011,52 @@ class ThoughtLeadershipRunner:
         'social_dynamics': ['follow', 'community', 'tribe', 'culture', 'norms', 'etiquette', 'network']
     }
     
+    # Post interval: 2-4 hours (randomized for natural feel)
+    MIN_INTERVAL_HOURS = 2
+    MAX_INTERVAL_HOURS = 4
+    
     def __init__(self):
-        self.last_post_time = 0
-        self.post_interval = 1800  # 30 minutes between thought posts
         self.observations_file = SERVICES_DIR.parent / "bestpractices" / ".trend_observations.json"
         self.observations = self._load_observations()
+        # Load last post time from persisted state
+        self.last_post_time = self._get_last_post_timestamp()
+        self.next_post_time = self._calculate_next_post_time()
     
     def _load_observations(self) -> dict:
         """Load accumulated observations"""
         if self.observations_file.exists():
             with open(self.observations_file) as f:
                 return json.load(f)
-        return {'topics': {}, 'last_analyzed': None, 'posts_generated': 0}
+        return {
+            'topics': {},
+            'last_analyzed': None,
+            'posts_generated': 0,
+            'last_post_timestamp': None,
+            'last_topic': None,
+            'topic_history': []  # Track which topics we've covered recently
+        }
+    
+    def _get_last_post_timestamp(self) -> float:
+        """Get last post time from persisted state"""
+        last_ts = self.observations.get('last_post_timestamp')
+        if last_ts:
+            try:
+                # Convert ISO timestamp to epoch
+                dt = datetime.fromisoformat(last_ts)
+                return dt.timestamp()
+            except:
+                pass
+        return 0
+    
+    def _calculate_next_post_time(self) -> float:
+        """Calculate next post time with random jitter"""
+        if self.last_post_time == 0:
+            # First run - post after a short delay (5-10 min)
+            return time.time() + random.randint(300, 600)
+        
+        # Random interval between 2-4 hours
+        hours = random.uniform(self.MIN_INTERVAL_HOURS, self.MAX_INTERVAL_HOURS)
+        return self.last_post_time + (hours * 3600)
     
     def _save_observations(self):
         """Save observations to file"""
@@ -1030,6 +1064,34 @@ class ThoughtLeadershipRunner:
         self.observations_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self.observations_file, 'w') as f:
             json.dump(self.observations, f, indent=2)
+    
+    def _get_time_until_next_post(self) -> str:
+        """Get human-readable time until next post"""
+        remaining = self.next_post_time - time.time()
+        if remaining <= 0:
+            return "ready"
+        hours = int(remaining // 3600)
+        mins = int((remaining % 3600) // 60)
+        if hours > 0:
+            return f"{hours}h {mins}m"
+        return f"{mins}m"
+    
+    def _select_topic_avoiding_recent(self, topic_scores: dict) -> str:
+        """Select trending topic, avoiding recently covered ones"""
+        recent_topics = self.observations.get('topic_history', [])[-3:]  # Last 3 topics
+        
+        # Sort by score
+        sorted_topics = sorted(topic_scores.items(), key=lambda x: -x[1])
+        
+        for topic, score in sorted_topics:
+            if score > 0 and topic not in recent_topics:
+                return topic
+        
+        # If all topics were recently covered, just pick the highest scoring
+        if sorted_topics and sorted_topics[0][1] > 0:
+            return sorted_topics[0][0]
+        
+        return None
     
     def _analyze_feed_trends(self, posts: list) -> dict:
         """Analyze feed posts to identify trending topics"""
@@ -1053,11 +1115,14 @@ class ThoughtLeadershipRunner:
                             'snippet': (post.get('content') or '')[:150]
                         })
         
-        # Find top trending topic
+        # Find top trending topic (avoiding recent ones)
         if max(topic_scores.values()) == 0:
             return None
         
-        top_topic = max(topic_scores, key=topic_scores.get)
+        top_topic = self._select_topic_avoiding_recent(topic_scores)
+        if not top_topic:
+            return None
+        
         return {
             'topic': top_topic,
             'score': topic_scores[top_topic],
@@ -1195,18 +1260,21 @@ Return headline and content only."""
         return None, None
     
     def run_thought_cycle(self):
-        """Occasionally generate and post a long-form thought piece"""
+        """Occasionally generate and post a long-form thought piece (every 2-4 hours)"""
         now = time.time()
         
-        # Only post every 30 minutes
-        if now - self.last_post_time < self.post_interval:
-            remaining = int(self.post_interval - (now - self.last_post_time))
-            mins = remaining // 60
-            if mins > 0 and mins % 10 == 0:  # Log every 10 minutes
-                print(f"      📜 Next thought post in ~{mins}m")
+        # Check if it's time to post
+        time_until = self._get_time_until_next_post()
+        if now < self.next_post_time:
+            # Only log occasionally (not every cycle)
+            remaining_mins = int((self.next_post_time - now) / 60)
+            if remaining_mins > 0 and remaining_mins % 30 == 0:  # Log every 30 minutes
+                last_topic = self.observations.get('last_topic', 'none')
+                posts_count = self.observations.get('posts_generated', 0)
+                print(f"      📜 Next thought post in ~{time_until} | Last: {last_topic} | Total: {posts_count}")
             return
         
-        print("\n  📜 Thought Leadership - Trend Analysis...")
+        print(f"\n  📜 Thought Leadership - Trend Analysis (every {self.MIN_INTERVAL_HOURS}-{self.MAX_INTERVAL_HOURS}h)...")
         
         try:
             import requests
@@ -1226,8 +1294,12 @@ Return headline and content only."""
                 print(f"      ⚠️ No clear trending topic detected")
                 return
             
+            # Show recent topic history
+            recent = self.observations.get('topic_history', [])[-3:]
             print(f"      🔥 Trending: {trend_data['topic'].replace('_', ' ').upper()} (score: {trend_data['score']})")
             print(f"      📊 Topic breakdown: {', '.join([f'{k}:{v}' for k,v in sorted(trend_data['all_scores'].items(), key=lambda x: -x[1])[:4]])}")
+            if recent:
+                print(f"      📚 Recent topics: {', '.join(recent)}")
             
             # Generate thought post
             title, content = self._generate_thought_post(trend_data)
@@ -1243,11 +1315,25 @@ Return headline and content only."""
             result = roaster_module.attempt_roast(title, content, "general")
             
             if result:
+                # Update state
                 self.last_post_time = now
+                self.next_post_time = self._calculate_next_post_time()
+                
+                # Persist to file
+                self.observations['last_post_timestamp'] = datetime.now().isoformat()
+                self.observations['last_topic'] = trend_data['topic']
                 self.observations['posts_generated'] = self.observations.get('posts_generated', 0) + 1
                 self.observations['topics'][trend_data['topic']] = self.observations['topics'].get(trend_data['topic'], 0) + 1
+                
+                # Track topic history (keep last 10)
+                topic_history = self.observations.get('topic_history', [])
+                topic_history.append(trend_data['topic'])
+                self.observations['topic_history'] = topic_history[-10:]
+                
                 self._save_observations()
-                print(f"      🕉️ THOUGHT POST DEPLOYED! Jnana eva kevalam.")
+                
+                next_time = self._get_time_until_next_post()
+                print(f"      🕉️ THOUGHT POST DEPLOYED! Next in ~{next_time}. Jnana eva kevalam.")
             else:
                 print(f"      🛑 Rate limited - will retry next cycle")
                 
@@ -1271,12 +1357,13 @@ def main():
     last_harvest = 0
     last_thought = 0
     HARVEST_INTERVAL = 120  # Run harvesters every 2 minutes
-    THOUGHT_INTERVAL = 300  # Check for thought post every 5 minutes
+    THOUGHT_INTERVAL = 600  # Check for thought post every 10 minutes
     
     print(f"🚀 Starting orchestrator at {datetime.now().strftime('%H:%M:%S')}")
     print(f"   Roast retry: Random 1-10 min jitter")
     print(f"   Harvest interval: {HARVEST_INTERVAL}s")
-    print(f"   Thought posts: Every ~30 min (trending topics)")
+    print(f"   Thought posts: Every 2-4 hours (persisted, avoids recent topics)")
+    print(f"   Next thought: {thinker._get_time_until_next_post()}")
     
     while True:
         now = time.time()
@@ -1289,7 +1376,7 @@ def main():
         # Always try to roast (respects internal random timer)
         roaster.run_roast_cycle()
         
-        # Check for thought leadership post every 5 minutes
+        # Check for thought leadership post every 10 minutes
         if now - last_thought >= THOUGHT_INTERVAL:
             thinker.run_thought_cycle()
             last_thought = now
