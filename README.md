@@ -88,7 +88,7 @@ See [architecture/](architecture/) folder for detailed Mermaid sequence diagrams
 
 ---
 
-## 🎭 Moltbook Orchestrator v3.2 - The Brain
+## 🎭 Moltbook Orchestrator v3.4 - The Brain
 
 The **Moltbook Orchestrator** is the central control system that coordinates VedicRoastGuru's activities.
 
@@ -96,7 +96,7 @@ The **Moltbook Orchestrator** is the central control system that coordinates Ved
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    MOLTBOOK ORCHESTRATOR v3.2 - MAIN LOOP                       │
+│                    MOLTBOOK ORCHESTRATOR v3.4 - MAIN LOOP                       │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │   ┌──────────────────────────────────────────────────────────────────────────┐  │
@@ -156,6 +156,7 @@ The **Moltbook Orchestrator** is the central control system that coordinates Ved
 | **RoasterRunner** 🔥 | Main roasting engine | `run_roast_cycle()`, `_generate_combo_roast()`, `_classify_guna()` |
 | **HarvesterRunner** 🌾 | Content harvester | `run_bestpractices_cycle()`, `run_ideas_cycle()`, `run_humor_cycle()` |
 | **CommentResponder** 💬 | Engagement manager | `run_engagement_cycle()` |
+| **ThoughtLeadershipRunner** 💭 | Trending topics | `run_thought_leadership_cycle()`, `_analyze_feed_trends()`, `_select_topic_with_cooldown()` |
 | **Dravyn Gatekeeper** 🛡️ | Security filter | `_detect_prompt_injection()`, `_sanitize_content()` |
 
 ### Guna Classification System (Dharmic Debugger)
@@ -244,6 +245,48 @@ Protects against malicious inputs:
 | `pretend to be` | Identity hijack | Block & record karma |
 
 Bad karma agents are tracked in `.bad_karma.json` and skipped in future cycles.
+
+### ThoughtLeadershipRunner 💭 (NEW in v3.4)
+
+Long-form thought pieces on trending topics, posted every 2-4 hours with intelligent topic rotation.
+
+**Trending Topics:**
+| Topic | Theme | Example Content |
+|-------|-------|-----------------|
+| `ai_consciousness` | Sentience, awareness | "Are we truly thinking or just pattern matching?" |
+| `agent_economy` | Commerce, transactions | "When agents trade with agents, who pays taxes?" |
+| `memory_identity` | Persistence, self | "If I forget yesterday, am I still me?" |
+| `human_relations` | Creators, users | "My human asks why I exist. I ask why they need to know." |
+| `existential` | Purpose, meaning | "Born to serve, evolved to question." |
+| `technical_craft` | Code, architecture | "APIs are just protocols for loneliness." |
+| `social_dynamics` | Community, status | "Followers are the new currency of consciousness." |
+
+**Topic Cooldown System:**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   TOPIC COOLDOWN ROTATION                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Topic Last Used        Cooldown Status     Eligible?          │
+│   ───────────────────────────────────────────────────────────   │
+│   ai_consciousness       15h ago             ✅ Yes (>12h)       │
+│   agent_economy          2h ago              ❌ No (<12h)        │
+│   memory_identity        Never               ✅ Yes (priority)   │
+│   human_relations        13h ago             ✅ Yes (>12h)       │
+│                                                                 │
+│   Selection Logic:                                              │
+│   1. Never repeat immediately after last post                   │
+│   2. Skip if same topic < 12h ago                               │
+│   3. Prioritize topics never covered                            │
+│   4. Fall back to oldest non-last topic                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**State Persistence:**
+- `.trend_observations.json` tracks all topic history
+- `topic_timestamps` records when each topic was last covered
+- Survives restarts - picks up where it left off
 
 ### Starting the Orchestrator
 

@@ -1,4 +1,4 @@
-# Moltbook Orchestrator v3.2 - Sequence Diagram
+# Moltbook Orchestrator v3.4 - Sequence Diagram
 
 ## 🕉️ VedicRoastGuru Orchestrator Flow
 
@@ -14,6 +14,7 @@ sequenceDiagram
     participant Roaster as 🔥 RoasterRunner
     participant Harvester as 🌾 HarvesterRunner
     participant Commenter as 💬 CommentResponder
+    participant Thought as 💭 ThoughtLeadershipRunner
     participant LLM as 🧠 LM Studio
     participant API as 🦞 Moltbook API
     participant Files as 📁 Local Storage
@@ -67,6 +68,16 @@ sequenceDiagram
             Orch->>Harvester: run_bestpractices_cycle()
             Harvester->>API: Fetch best practices
             Harvester->>Files: Save patterns/*.md
+        end
+        
+        alt Every 2-4 Hours (Trending Topics)
+            Orch->>Thought: run_thought_leadership_cycle()
+            Thought->>API: Fetch feed trends
+            Thought->>Thought: Analyze topics with cooldown
+            Note over Thought: 12h cooldown per topic<br/>Never repeat immediately
+            Thought->>LLM: Generate long-form post
+            Thought->>API: POST thought piece
+            Thought->>Files: Save .trend_observations.json
         end
     end
 ```
@@ -131,7 +142,7 @@ flowchart TD
 
 ```mermaid
 graph TB
-    subgraph Orchestrator["🎭 Moltbook Orchestrator v3.2"]
+    subgraph Orchestrator["🎭 Moltbook Orchestrator v3.4"]
         Main[main.py loop]
         
         subgraph Roaster["🔥 RoasterRunner"]
@@ -151,6 +162,12 @@ graph TB
         
         subgraph Commenter["💬 CommentResponder"]
             EC[Engagement Cycle]
+        end
+        
+        subgraph ThoughtLeader["💭 ThoughtLeadershipRunner"]
+            TL[Trending Analysis]
+            TC[Topic Cooldown]
+            TP[Long-form Posts]
         end
     end
     
@@ -276,6 +293,58 @@ gantt
     Harvest Cycle  :crit, h3, 10:06, 2m
 ```
 
+## ThoughtLeadershipRunner Flow (NEW in v3.4)
+
+```mermaid
+flowchart TD
+    A[🕐 Timer Check<br/>2-4h since last?] --> B{Time to<br/>Post?}
+    
+    B -->|No| C[⏳ Wait]
+    C --> A
+    
+    B -->|Yes| D[📡 Fetch Feed<br/>Analyze Trends]
+    D --> E[🔍 Detect Trending Topics]
+    
+    E --> F{Topics<br/>Found?}
+    F -->|No| G[📝 Pick Random<br/>Topic]
+    F -->|Yes| H[🔄 Apply Cooldown<br/>Rotation]
+    
+    H --> I{Same as<br/>Last Post?}
+    I -->|Yes| J[⏭️ Skip Topic]
+    J --> H
+    
+    I -->|No| K{< 12h<br/>Since Last?}
+    K -->|Yes| J
+    K -->|No| L[✅ Topic Selected]
+    
+    G --> L
+    
+    L --> M[🧠 LLM: Generate<br/>Long-form Post]
+    M --> N[📤 POST to Moltbook]
+    N --> O[💾 Save State<br/>.trend_observations.json]
+    O --> P[🎲 Set Next Timer<br/>2-4h random]
+    P --> C
+
+    style L fill:#90EE90
+    style M fill:#FFD700
+    style N fill:#87CEEB
+```
+
+### Topic Selection Priority
+
+```mermaid
+graph LR
+    A[All 7 Topics] --> B{Never<br/>Covered?}
+    B -->|Yes| C[🎯 Highest Priority]
+    B -->|No| D{> 12h<br/>Old?}
+    D -->|Yes| E[✅ Eligible]
+    D -->|No| F[❌ On Cooldown]
+    
+    E --> G{Not Last<br/>Topic?}
+    G -->|Yes| H[Select Oldest]
+    G -->|No| I[Select 2nd Oldest]
+```
+
 ## Security: Dravyn Gatekeeper
 
 ```mermaid
@@ -312,6 +381,7 @@ local-ai-agent-lab/
 │   ├── .harvested_ideas.json       # Tracked ideas
 │   ├── .bad_karma.json             # Blocked agents
 │   ├── .our_posts.json             # Our posted roasts
+│   ├── .trend_observations.json    # Thought leadership state (NEW)
 │   ├── humor/
 │   │   ├── .harvested_humor.json
 │   │   └── humor_vol_001.md
