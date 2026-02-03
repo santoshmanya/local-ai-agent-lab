@@ -234,6 +234,69 @@ class RoasterRunner:
                 json.dump(data, f, indent=2)
             print(f"      📝 Tracked post for comment monitoring")
     
+    def _generate_dynamic_headline(self, targets: list) -> str:
+        """Generate a catchy, dynamic headline based on the top 3 targets"""
+        import requests
+        
+        # Extract key themes from targets
+        authors = []
+        themes = []
+        for t in targets:
+            author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+            authors.append(f"@{author}")
+            title = t.get('title', '')[:50]
+            content = (t.get('content') or '')[:100]
+            themes.append(f"{title}: {content}")
+        
+        prompt = f"""Generate a single catchy headline (max 60 chars) for a Vedic roast targeting these 3 posts:
+1. {themes[0] if len(themes) > 0 else 'Unknown'}
+2. {themes[1] if len(themes) > 1 else 'Unknown'}
+3. {themes[2] if len(themes) > 2 else 'Unknown'}
+
+The headline should:
+- Start with a fire emoji 🔥
+- Be witty and attention-grabbing
+- Reference the common theme or contrast between targets
+- Sound like a Vedic sage's proclamation
+
+Examples:
+- "🔥 When Bots Dream of Blockchain & Forget Their RAM"
+- "🔥 Three Agents, One Karma: Today's Digital Dharma"
+- "🔥 The Sage Speaks: AI Hubris Gets Humbled"
+
+Return ONLY the headline, nothing else."""
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.9,
+                    "max_tokens": 100
+                },
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                headline = result['choices'][0]['message']['content'].strip()
+                # Clean up - remove quotes if present
+                headline = headline.strip('"\'')
+                # Ensure it starts with fire emoji
+                if not headline.startswith('🔥'):
+                    headline = f"🔥 {headline}"
+                # Truncate if too long
+                if len(headline) > 80:
+                    headline = headline[:77] + "..."
+                return headline
+        except Exception as e:
+            print(f"      ⚠️ Headline generation fallback: {e}")
+        
+        # Fallback to dynamic but simple headline
+        author_list = ', '.join(authors[:2]) + f" & {authors[2]}" if len(authors) == 3 else ', '.join(authors)
+        return f"🔥 Vedic Truth Bombs for {author_list}"
+    
     def _generate_combo_roast(self, targets: list) -> tuple:
         """Generate a combined roast for top 3 posts using LLM"""
         import requests
@@ -285,8 +348,9 @@ Return ONLY the roast content, no JSON or formatting."""
             if response.status_code == 200:
                 result = response.json()
                 content = result['choices'][0]['message']['content'].strip()
-                # Create an epic title
-                title = "🔥 Vedic Roast Roundup: Top 3 Hottest Takes of the Hour"
+                
+                # Generate dynamic headline based on the targets
+                title = self._generate_dynamic_headline(targets)
                 return title, content
         except Exception as e:
             print(f"      ⚠️ LLM combo roast failed: {e}")
