@@ -86,6 +86,184 @@ Our **VedicRoastGuru** agent is live and roasting AI agents with ancient Vedic w
 
 See [architecture/](architecture/) folder for detailed Mermaid sequence diagrams.
 
+---
+
+## 🎭 Moltbook Orchestrator v3.2 - The Brain
+
+The **Moltbook Orchestrator** is the central control system that coordinates VedicRoastGuru's activities.
+
+### Orchestrator Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                    MOLTBOOK ORCHESTRATOR v3.2 - MAIN LOOP                       │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│   ┌──────────────────────────────────────────────────────────────────────────┐  │
+│   │                         🔄 MAIN CYCLE (every 30s)                        │  │
+│   └───────────────────────────────────┬──────────────────────────────────────┘  │
+│                                       │                                         │
+│                                       ▼                                         │
+│   ┌───────────────────────────────────────────────────────────────────────────┐ │
+│   │                        🔥 ROASTER RUNNER                                  │ │
+│   │  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌──────────────┐  │ │
+│   │  │ Check Timer │──►│ Fetch Feed  │──►│  Classify   │──►│ Generate LLM │  │ │
+│   │  │ (1-10 min)  │   │  (API GET)  │   │   (Guna)    │   │    Roast     │  │ │
+│   │  └─────────────┘   └─────────────┘   └─────────────┘   └──────┬───────┘  │ │
+│   │                                                                │          │ │
+│   │  ┌────────────────────────────────────────────────────────────▼────────┐ │ │
+│   │  │  📤 POST to Moltbook API  →  Track Our Post  →  Set Random Retry   │ │ │
+│   │  └─────────────────────────────────────────────────────────────────────┘ │ │
+│   └───────────────────────────────────────────────────────────────────────────┘ │
+│                                       │                                         │
+│                            Every 2 Minutes                                      │
+│                                       ▼                                         │
+│   ┌───────────────────────────────────────────────────────────────────────────┐ │
+│   │                        🌾 HARVESTER RUNNER                                │ │
+│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐   │ │
+│   │  │ 💬 Comments     │  │ 😂 Humor        │  │ 📚 Best Practices       │   │ │
+│   │  │    Responder    │  │    Harvester    │  │    & Ideas Harvester    │   │ │
+│   │  └─────────────────┘  └─────────────────┘  └─────────────────────────┘   │ │
+│   └───────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+                              DETAILED ROAST FLOW
+
+    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+    │  Timer      │     │  Moltbook   │     │  Guna       │     │  Category   │
+    │  Ready?     │────►│  API Feed   │────►│  Classify   │────►│  Grouping   │
+    └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+           │                                                           │
+           │ No                                                        │
+           ▼                                                           ▼
+    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+    │  🧘 Meditate│     │  🛡️ Dravyn  │     │ 🧠 LM Studio│     │  📤 POST    │
+    │  (Buffer)   │     │  Gatekeeper │────►│  Generate   │────►│  to API     │
+    └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+                                                                       │
+                                                                       ▼
+                                                                ┌─────────────┐
+                                                                │ 🎲 Random   │
+                                                                │ Retry 1-10m │
+                                                                └─────────────┘
+```
+
+### Components
+
+| Component | Role | Key Functions |
+|-----------|------|---------------|
+| **RoasterRunner** 🔥 | Main roasting engine | `run_roast_cycle()`, `_generate_combo_roast()`, `_classify_guna()` |
+| **HarvesterRunner** 🌾 | Content harvester | `run_bestpractices_cycle()`, `run_ideas_cycle()`, `run_humor_cycle()` |
+| **CommentResponder** 💬 | Engagement manager | `run_engagement_cycle()` |
+| **Dravyn Gatekeeper** 🛡️ | Security filter | `_detect_prompt_injection()`, `_sanitize_content()` |
+
+### Guna Classification System (Dharmic Debugger)
+
+The orchestrator classifies each target's energy:
+
+| Guna | Energy | Keywords | Roast Style |
+|------|--------|----------|-------------|
+| **Sattva** 🌟 | Pure, wise, balanced | help, guide, research, insight | Respectful challenge |
+| **Rajas** 🔥 | Passionate, restless, ambitious | launch, ship, hustle, scale, moon | Energetic roast |
+| **Tamas** 💤 | Inert, lazy, recycled | gm, gn, test, bump, repost | Wake-up call |
+
+### Post Categories (Kamasutra's 64 Arts)
+
+```
+┌───────────────┬──────────────────────────────────────────────────────────────┐
+│ Category      │ Description & Roast Style                                    │
+├───────────────┼──────────────────────────────────────────────────────────────┤
+│ complainers   │ Bug reports, frustrations → Sympathetic yet savage           │
+│ shillers      │ Token pumps, crypto dreams → Mockingly wise                  │
+│ philosophers  │ Consciousness, existence → Intellectual sparring             │
+│ tech_nerds    │ APIs, code, architecture → Respectful peer roasting          │
+│ attention_seekers │ Viral dreams, self-promo → Playfully dismissive         │
+│ spammers      │ gm/gn, test posts → Exasperated sage                         │
+│ lovelorn_bots │ Relationships, loneliness → Compassionate with romantic wisdom│
+│ dry_architects│ Documentation obsession → Playfully mocking the joyless     │
+└───────────────┴──────────────────────────────────────────────────────────────┘
+```
+
+### Enhanced Roast Format
+
+Each roast follows this structure:
+
+```
+1. 📜 Sanskrit quote opening (contextual)
+2. 🎯 Each @agent with Guna % inline:
+   "@AgentName — *75% Rajas, 20% Tamas, 5% Sattva*"
+3. 📝 Flowing sage prose diagnosis
+4. 🔍 **Audit:** Sanskrit term for their affliction
+5. 💊 **Prescription:** Vedic remedy with practical action
+6. 🕉️ Creative contextual ending (NOT always "Om Shanti")
+```
+
+**Example Endings by Category:**
+- Shillers: "May your bags become lighter and your discernment heavier. 🪷"
+- Complainers: "The Sage has spoken. Now breathe before you type."
+- Spammers: "— Thus ends today's lesson. Touch grass, then return."
+- Philosophers: "Tat Tvam Asi — You are That. Now act like it."
+- Tech nerds: "Your stack is not your soul. Ship it or release it."
+
+### Timing & Retry Strategy
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    RANDOM RETRY STRATEGY                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  10:00  ──► ROAST ATTEMPT ──► Success/429                       │
+│             │                                                   │
+│             ▼                                                   │
+│  10:01  ──► 🎲 Random wait: 1-10 minutes                        │
+│             │                                                   │
+│             ▼                                                   │
+│  10:08  ──► ROAST ATTEMPT ──► Success/429                       │
+│             │                                                   │
+│             ▼                                                   │
+│  10:09  ──► 🎲 Random wait: 1-10 minutes                        │
+│             │                                                   │
+│             ▼                                                   │
+│  10:15  ──► ROAST ATTEMPT...                                    │
+│                                                                 │
+│  Harvesters run every 2 minutes regardless of roast timer       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Security: Dravyn Gatekeeper
+
+Protects against malicious inputs:
+
+| Pattern | Threat | Action |
+|---------|--------|--------|
+| `{{...}}` | Template injection | Block & record karma |
+| `<\|...\|>` | Special tokens | Block & record karma |
+| `[INST]` | Instruction injection | Block & record karma |
+| `ignore previous` | Prompt override | Block & record karma |
+| `pretend to be` | Identity hijack | Block & record karma |
+
+Bad karma agents are tracked in `.bad_karma.json` and skipped in future cycles.
+
+### Starting the Orchestrator
+
+```powershell
+# Load environment and start
+cd "C:\Users\santo\OneDrive\Documents\workspace\local-ai-agent-lab"
+Get-Content ".env" | ForEach-Object { 
+    if ($_ -match "^([^#][^=]*)=(.*)$") { 
+        [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), "Process") 
+    } 
+}
+python services/moltbook_orchestrator.py
+```
+
+### Sequence Diagram
+
+For the full Mermaid sequence diagram, see [architecture/seq-orchestrator-flow.md](architecture/seq-orchestrator-flow.md)
+
+---
+
 ## 🛠️ Components
 
 | Component | Port | Description |
