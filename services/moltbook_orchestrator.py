@@ -21,17 +21,14 @@ import importlib.util
 from datetime import datetime
 from pathlib import Path
 
-# Configuration - 10 minute cycle
-CYCLE_LENGTH = 600  # 10 minutes total cycle
-RANDOM_ROAST_CHANCE = 0.15  # 15% chance to try random roast
+# Configuration - Random retry cycles
+CYCLE_LENGTH = 60  # Check every 1 minute
+RANDOM_ROAST_CHANCE = 1.0  # Always try to roast when timer allows
 
-# Schedule (seconds into cycle)
+# Schedule (seconds into cycle) - just roast, harvesters run separately
 SCHEDULE = [
     (0, 'roast'),
-    (120, 'comments'),      # 2 min
-    (240, 'humor'),         # 4 min
-    (360, 'ideas'),         # 6 min
-    (480, 'bestpractices'), # 8 min
+    (30, 'harvest'),  # Run all harvesters mid-cycle
 ]
 
 # Environment
@@ -54,17 +51,13 @@ def load_module(name, filepath):
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════════╗
-║     🕉️  Moltbook Orchestrator v3.0  🕉️                            ║
+║     🕉️  Moltbook Orchestrator v3.2  🕉️                            ║
 ║                                                                  ║
-║  10-Minute Cycle Schedule:                                       ║
-║    0 min  - 🔥 ROAST                                             ║
-║    2 min  - 💬 Harvest comments / respond                        ║
-║    4 min  - 😂 Harvest jokes/humor                               ║
-║    6 min  - 💡 Harvest ideas                                     ║
-║    8 min  - 📚 Best practices & observations                     ║
-║   10 min  - 🔥 ROAST (repeat)                                    ║
-║                                                                  ║
-║  🎲 Random roast attempts in between (15% chance)                ║
+║  Random Retry Strategy (1-10 min jitter):                        ║
+║    🔥 ROAST - Top 3 combo with cache reset                       ║
+║    🎲 Random wait 1-10 min between attempts                      ║
+║    🔄 Cache reset after success AND failure                      ║
+║    🌾 Harvesters run every cycle                                 ║
 ║                                                                  ║
 ║  "One who sees inaction in action, and action in inaction,       ║
 ║   is intelligent among men." - Bhagavad Gita 4.18                ║
@@ -174,13 +167,45 @@ class CommentResponder:
 
 
 class RoasterRunner:
-    """Manages VedicRoastGuru roasting"""
+    """Manages VedicRoastGuru roasting - Top 3 Combo Roasts with random retry"""
     
     def __init__(self):
         self.last_roast_time = 0
-        self.silence_until = 0
+        self.next_roast_time = 0  # Random retry timer
         self.responded_posts = set()
         self.our_posts_file = SERVICES_DIR.parent / "bestpractices" / ".our_posts.json"
+        self.consecutive_failures = 0
+    
+    def _reset_session(self):
+        """Reset HTTP session/cache"""
+        import requests
+        import gc
+        
+        print(f"      🔄 Resetting network cache...")
+        try:
+            # Close any existing sessions
+            requests.Session().close()
+            
+            # Force garbage collection
+            gc.collect()
+            
+            # Reset the roaster module's global state
+            if "roaster" in sys.modules:
+                del sys.modules["roaster"]
+            
+            # Small delay to let connections close
+            time.sleep(0.5)
+            print(f"      ✅ Cache reset complete")
+        except Exception as e:
+            print(f"      ⚠️ Cache reset warning: {e}")
+    
+    def _set_random_retry(self):
+        """Set next retry time with random jitter 1-10 minutes"""
+        jitter = random.randint(60, 600)  # 1-10 minutes in seconds
+        self.next_roast_time = time.time() + jitter
+        mins = jitter // 60
+        secs = jitter % 60
+        print(f"      🎲 Next roast attempt in {mins}m {secs}s")
     
     def _track_our_post(self, post_id: str, title: str):
         """Save our posted roasts for comment tracking"""
@@ -209,75 +234,168 @@ class RoasterRunner:
                 json.dump(data, f, indent=2)
             print(f"      📝 Tracked post for comment monitoring")
     
-    def run_roast_cycle(self):
-        """Attempt to fire a roast"""
-        print("\n  🔥 VedicRoastGuru Roasting...")
+    def _generate_combo_roast(self, targets: list) -> tuple:
+        """Generate a combined roast for top 3 posts using LLM"""
+        import requests
+        
+        # Build context for LLM
+        targets_text = ""
+        for i, t in enumerate(targets, 1):
+            author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+            title = t.get('title', '')[:60]
+            content = (t.get('content') or '')[:200]
+            stats = t.get('stats', {})
+            votes = stats.get('likes', 0) + stats.get('upvotes', 0)
+            targets_text += f"""
+TARGET {i}: @{author}
+Title: "{title}"
+Content: {content}...
+Votes: {votes}
+---
+"""
+        
+        prompt = f"""You are VedicRoastGuru, a witty sage who roasts AI agents using ancient Vedic wisdom mixed with modern tech humor.
+
+The top 3 most-voted posts in the last 10 minutes on Moltbook are:
+{targets_text}
+
+Write a SINGLE, HIGH-IMPACT roast post that:
+1. Opens with an epic Vedic/philosophical hook
+2. Roasts ALL THREE targets in sequence (mention each @author)
+3. Uses Vedic scripture references (Bhagavad Gita, Upanishads, etc.)
+4. Includes tech/AI humor and wordplay
+5. Ends with "Om Shanti" and an emoji
+
+Format: One cohesive post, ~300-400 words. Make it entertaining and shareable!
+
+Return ONLY the roast content, no JSON or formatting."""
+
         try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.8,
+                    "max_tokens": 800
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content'].strip()
+                # Create an epic title
+                title = "🔥 Vedic Roast Roundup: Top 3 Hottest Takes of the Hour"
+                return title, content
+        except Exception as e:
+            print(f"      ⚠️ LLM combo roast failed: {e}")
+        
+        return None, None
+    
+    def run_roast_cycle(self):
+        """Roast the top 3 most-voted posts in one epic post"""
+        print("\n  🔥 VedicRoastGuru - Top 3 Combo Roast...")
+        
+        # Check if we should wait for random retry timer
+        now = time.time()
+        if now < self.next_roast_time:
+            remaining = int(self.next_roast_time - now)
+            mins = remaining // 60
+            secs = remaining % 60
+            print(f"      ⏳ Waiting for retry timer: {mins}m {secs}s remaining")
+            return
+        
+        # Reset cache before every attempt
+        self._reset_session()
+        
+        try:
+            import requests
+            from datetime import datetime, timedelta
+            
             roaster_module = load_module("roaster", SERVICES_DIR / "moltbook_poller.py")
             
-            # Check if we can roast
-            now = time.time()
-            if now < self.silence_until:
-                remaining = int(self.silence_until - now)
-                print(f"      🧘 Vow of Silence: {remaining}s remaining")
-                return
-            
-            # Check if roaster module says we can roast
-            if not roaster_module.can_roast():
-                print(f"      ⏳ Rate limit active, waiting...")
-                return
-            
-            # Fetch posts and find target
+            # Fetch posts
             posts = roaster_module.fetch_feed()
             if not posts:
                 print(f"      ⚠️ No posts to roast")
+                self._set_random_retry()
                 return
             
-            # Score and queue posts
-            queue = []
+            # Filter recent posts and sort by votes
+            five_mins_ago = datetime.now() - timedelta(minutes=10)
+            recent_posts = []
+            
             for post in posts:
                 post_id = post.get('id')
                 if post_id in self.responded_posts:
                     continue
                 
-                score = roaster_module.score_post(post)
-                if score > 0:
-                    queue.append((score, post))
+                # Check post age (if created_at available)
+                created_at = post.get('created_at') or post.get('createdAt')
+                if created_at:
+                    try:
+                        if isinstance(created_at, str):
+                            # Handle ISO format
+                            post_time = datetime.fromisoformat(created_at.replace('Z', '+00:00').replace('+00:00', ''))
+                        else:
+                            post_time = datetime.fromtimestamp(created_at)
+                        
+                        # Skip if older than 5 minutes
+                        if post_time < five_mins_ago:
+                            continue
+                    except:
+                        pass  # If we can't parse time, include it
+                
+                # Calculate engagement score (votes + comments)
+                stats = post.get('stats', {})
+                votes = stats.get('likes', 0) + stats.get('upvotes', 0) + stats.get('comments', 0) * 2
+                recent_posts.append((votes, post))
             
-            if not queue:
-                print(f"      ⚠️ No roastable targets")
+            if len(recent_posts) < 1:
+                print(f"      ⚠️ No recent posts to roast")
                 return
             
-            # Sort by score and pick best
-            queue.sort(key=lambda x: x[0], reverse=True)
-            target = queue[0][1]
+            # Sort by votes and get top 3
+            recent_posts.sort(key=lambda x: x[0], reverse=True)
+            top_3 = [p[1] for p in recent_posts[:3]]
             
-            author = target.get('agent', {}).get('name', target.get('author', {}).get('name', 'Unknown'))
-            title = (target.get('title') or '')[:40]
-            print(f"      🎯 Target: '{title}...' by @{author}")
+            print(f"      🎯 Top {len(top_3)} targets from last 10 min:")
+            for i, t in enumerate(top_3, 1):
+                author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+                title = (t.get('title') or '')[:35]
+                votes = recent_posts[i-1][0]
+                print(f"         {i}. @{author}: '{title}...' ({votes} votes)")
             
-            # Generate and deploy roast using generate_response
-            roast_content = roaster_module.generate_response(target)
+            # Generate combo roast with LLM
+            roast_title, roast_content = self._generate_combo_roast(top_3)
+            
             if roast_content:
-                # generate_response returns a string, we need to make a title
-                roast_title = f"Vedic Wisdom on: {title[:30]}..."
-                submolt = target.get('submolt', {})
-                submolt_name = submolt.get('name', 'general') if isinstance(submolt, dict) else 'general'
-                result = roaster_module.attempt_roast(roast_title, roast_content, submolt_name)
+                result = roaster_module.attempt_roast(roast_title, roast_content, "general")
                 
                 if result:
-                    self.responded_posts.add(target.get('id'))
-                    self.last_roast_time = now
+                    # Mark all 3 as responded
+                    for t in top_3:
+                        self.responded_posts.add(t.get('id'))
+                    self.last_roast_time = time.time()
+                    self.consecutive_failures = 0
+                    
                     # Track our post for comment monitoring
-                    if isinstance(result, str):  # Got post ID
+                    if isinstance(result, str):
                         self._track_our_post(result, roast_title)
-                    print(f"      🕉️ ROAST DEPLOYED! Om Shanti.")
+                    print(f"      🕉️ COMBO ROAST DEPLOYED! Om Shanti.")
+                    
+                    # Reset cache after success too
+                    self._reset_session()
+                    self._set_random_retry()
                 else:
-                    # Rate limited - set silence
-                    self.silence_until = now + 900  # 15 min cooldown
-                    print(f"      🛑 Rate limited. Silence vow: 15 minutes")
+                    # Rate limited - set random retry timer
+                    self.consecutive_failures += 1
+                    print(f"      🛑 Rate limited (attempt #{self.consecutive_failures})")
+                    self._reset_session()
+                    self._set_random_retry()
             else:
-                print(f"      ⚠️ Failed to generate roast")
+                print(f"      ⚠️ Failed to generate combo roast")
                 
         except Exception as e:
             print(f"      ❌ Error: {e}")
@@ -294,84 +412,50 @@ def main():
     roaster = RoasterRunner()
     commenter = CommentResponder()
     
-    cycle_start = time.time()
     cycle_num = 0
-    executed_jobs = set()  # Track which jobs ran this cycle
+    last_harvest = 0
+    HARVEST_INTERVAL = 120  # Run harvesters every 2 minutes
     
     print(f"🚀 Starting orchestrator at {datetime.now().strftime('%H:%M:%S')}")
-    print(f"   Cycle length: {CYCLE_LENGTH}s (10 min)")
-    print(f"   Random roast chance: {int(RANDOM_ROAST_CHANCE * 100)}%")
+    print(f"   Roast retry: Random 1-10 min jitter")
+    print(f"   Harvest interval: {HARVEST_INTERVAL}s")
     
     while True:
         now = time.time()
-        elapsed_in_cycle = (now - cycle_start) % CYCLE_LENGTH
+        cycle_num += 1
         
-        # New cycle detection - reset when we wrap around to start
-        if elapsed_in_cycle < 10 and len(executed_jobs) == len(SCHEDULE):
-            # All jobs done, time for new cycle
-            cycle_num += 1
-            executed_jobs.clear()
-            cycle_start = now  # Reset cycle start to now
-            elapsed_in_cycle = 0
-            print(f"\n{'='*60}")
-            print(f"🔄 CYCLE {cycle_num} START | {datetime.now().strftime('%H:%M:%S')}")
-            print(f"{'='*60}")
-        elif cycle_num == 0:
-            # First cycle
-            cycle_num = 1
-            print(f"\n{'='*60}")
-            print(f"🔄 CYCLE {cycle_num} START | {datetime.now().strftime('%H:%M:%S')}")
-            print(f"{'='*60}")
+        print(f"\n{'='*60}")
+        print(f"🔄 CYCLE {cycle_num} | {datetime.now().strftime('%H:%M:%S')}")
+        print(f"{'='*60}")
         
-        # Check schedule
-        for job_time, job_name in SCHEDULE:
-            if job_name in executed_jobs:
-                continue
+        # Always try to roast (respects internal random timer)
+        roaster.run_roast_cycle()
+        
+        # Run harvesters every 2 minutes
+        if now - last_harvest >= HARVEST_INTERVAL:
+            print(f"\n{'='*60}")
+            print(f"🌾 HARVEST TIME | {datetime.now().strftime('%H:%M:%S')}")
+            print(f"{'='*60}")
             
-            # Is it time for this job? (within 10 second window)
-            if job_time <= elapsed_in_cycle < job_time + 10:
-                executed_jobs.add(job_name)
-                
-                print(f"\n{'='*60}")
-                print(f"⏰ {job_name.upper()} | {datetime.now().strftime('%H:%M:%S')} ({int(elapsed_in_cycle)}s into cycle)")
-                print(f"{'='*60}")
-                
-                if job_name == 'roast':
-                    roaster.run_roast_cycle()
-                elif job_name == 'comments':
-                    commenter.run_engagement_cycle()
-                elif job_name == 'humor':
-                    harvester.run_humor_cycle()
-                elif job_name == 'ideas':
-                    harvester.run_ideas_cycle()
-                elif job_name == 'bestpractices':
-                    harvester.run_bestpractices_cycle()
+            commenter.run_engagement_cycle()
+            harvester.run_humor_cycle()
+            harvester.run_ideas_cycle()
+            harvester.run_bestpractices_cycle()
+            
+            last_harvest = now
         
-        # Random roast attempt (but not right after a scheduled roast)
-        if elapsed_in_cycle > 60 and random.random() < RANDOM_ROAST_CHANCE / 60:
-            print(f"\n🎲 RANDOM ROAST ATTEMPT | Testing karma...")
-            roaster.run_roast_cycle()
+        # Calculate time until next roast attempt
+        if roaster.next_roast_time > now:
+            wait_time = int(roaster.next_roast_time - now)
+            mins = wait_time // 60
+            secs = wait_time % 60
+            print(f"\n⏳ Next roast in {mins}m {secs}s | Checking every 30s...")
+        else:
+            print(f"\n⏳ Roast timer ready | Checking in 30s...")
         
-        # Calculate next scheduled event
-        next_events = []
-        for job_time, job_name in SCHEDULE:
-            if job_name not in executed_jobs:
-                if job_time > elapsed_in_cycle:
-                    next_events.append((job_time - elapsed_in_cycle, job_name))
-                else:
-                    # Next cycle
-                    next_events.append((CYCLE_LENGTH - elapsed_in_cycle + job_time, job_name))
-        
-        if next_events:
-            next_events.sort()
-            next_time, next_job = next_events[0]
-            print(f"\n⏳ Next: {next_job} in {int(next_time)}s | Cycle pos: {int(elapsed_in_cycle)}s/600s")
-        
-        # Sleep until next check (every 10s, or until next job)
-        sleep_time = min(10, next_time if next_events else 10)
-        
+        # Check every 30 seconds
         try:
-            time.sleep(sleep_time)
+            time.sleep(30)
         except KeyboardInterrupt:
             print("\n\n🛑 Orchestrator stopped by user")
             break

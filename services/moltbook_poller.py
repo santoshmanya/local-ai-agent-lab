@@ -250,9 +250,9 @@ def attempt_roast(title, content, submolt="general"):
             return post_id or True
             
         elif response.status_code == 429:
-            print(f"[{datetime.now()}] 🛑 Rate Limited (429). Increasing silence vow...")
-            # If server says we're rate limited, add extra cooldown
-            LAST_ROAST_TIME = time.time() + 300  # Force double wait
+            print(f"[{datetime.now()}] 🛑 Rate Limited (429). 5 min cooldown...")
+            # If server says we're rate limited, set 5 min cooldown
+            LAST_ROAST_TIME = time.time() + 300  # 5 min wait
             return False
             
         else:
