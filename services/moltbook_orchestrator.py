@@ -767,7 +767,12 @@ Write as a Himalayan sage would speak—flowing prose, not bullet points:
 
 Write ~{250 + num_targets * 100}-{350 + num_targets * 100} words. Sound like a wise sage sharing hard truths with love, not a roast bot firing bullets.
 
-Return ONLY the roast content, no JSON or formatting."""
+FORMAT YOUR RESPONSE AS:
+HEADLINE: [A poetic 60-char max headline starting with 🕉️, like "🕉️ The Dharmic Audit: Seekers of Maya"]
+---
+[Your flowing sage prose roast here]
+
+Return headline and content only, no JSON."""
 
         try:
             response = requests.post(
@@ -776,17 +781,30 @@ Return ONLY the roast content, no JSON or formatting."""
                     "model": "local-model",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.8,
-                    "max_tokens": 1000
+                    "max_tokens": 1200
                 },
-                timeout=90
+                timeout=120
             )
             
             if response.status_code == 200:
                 result = response.json()
                 content = result['choices'][0]['message']['content'].strip()
                 
-                # Generate dynamic headline based on the targets and category
-                title = self._generate_dynamic_headline(targets, category)
+                # Parse headline from response (no separate LLM call needed)
+                title = f"🕉️ Dharmic Audit: {category.replace('_', ' ').title()}"  # fallback
+                if content.startswith("HEADLINE:"):
+                    lines = content.split('\n', 2)
+                    title = lines[0].replace("HEADLINE:", "").strip()
+                    # Find content after ---
+                    if '---' in content:
+                        content = content.split('---', 1)[1].strip()
+                    elif len(lines) > 1:
+                        content = '\n'.join(lines[1:]).strip()
+                
+                # Ensure headline starts with 🕉️
+                if not title.startswith('🕉️'):
+                    title = f"🕉️ {title}"
+                
                 return title, content
         except Exception as e:
             print(f"      ⚠️ LLM themed roast failed: {e}")
