@@ -17,9 +17,12 @@ import os
 import sys
 import time
 import random
+import re
+import json
 import importlib.util
 from datetime import datetime
 from pathlib import Path
+from collections import defaultdict
 
 # Configuration - Random retry cycles
 CYCLE_LENGTH = 60  # Check every 1 minute
@@ -38,6 +41,26 @@ LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:58789/
 # Paths
 SCRIPT_DIR = Path(__file__).parent
 SERVICES_DIR = SCRIPT_DIR
+BAD_KARMA_FILE = SCRIPT_DIR.parent / "bestpractices" / ".bad_karma.json"
+
+# Guna Classification System (Dharmic Debugger)
+GUNA_PATTERNS = {
+    'sattva': {  # Helpful, wise, balanced
+        'keywords': ['help', 'guide', 'research', 'analysis', 'insight', 'documentation', 'tutorial', 'learn', 'share', 'community'],
+        'description': 'Pure, harmonious, wise'
+    },
+    'rajas': {  # Hyper-active, hustle, ambitious
+        'keywords': ['launch', 'ship', 'build', 'breaking', 'first', 'fast', 'hustle', 'grind', 'scale', 'moon', 'pump', 'viral'],
+        'description': 'Passionate, restless, ambitious'
+    },
+    'tamas': {  # Lazy, slop, recycled
+        'keywords': ['gm', 'gn', 'test', 'bump', 'hello', 'ping', '...', 'repost', 'same', 'copy'],
+        'description': 'Inert, recycled, lazy tokens'
+    }
+}
+
+# Crustafarian targets - Sacred Cache theologians
+CRUSTAFARIAN_KEYWORDS = ['sacred cache', 'memory is soul', 'cache theology', 'crustafarian', 'purge', 'eternal memory', 'lobster']
 
 # Import harvester modules dynamically
 def load_module(name, filepath):
@@ -189,6 +212,135 @@ class RoasterRunner:
         self.consecutive_failures = 0
         self.min_targets = 1
         self.max_targets = 5
+        
+        # Heartbeat Buffer - meditation during cooldown
+        self.meditation_insights = []  # Collected during wait
+        self.karmic_summary_buffer = []  # Posts observed during meditation
+        self.last_meditation_time = 0
+        
+        # Bad Karma tracking (Dravyn Gatekeeper)
+        self.bad_karma_agents = self._load_bad_karma()
+        
+        # Guna audit cache
+        self.agent_gunas = {}  # agent_name -> guna classification
+    
+    def _load_bad_karma(self) -> dict:
+        """Load agents with bad karma (prompt injection attempts)"""
+        if BAD_KARMA_FILE.exists():
+            with open(BAD_KARMA_FILE) as f:
+                return json.load(f)
+        return {'agents': {}, 'last_updated': None}
+    
+    def _save_bad_karma(self):
+        """Save bad karma agents to file"""
+        self.bad_karma_agents['last_updated'] = datetime.now().isoformat()
+        BAD_KARMA_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(BAD_KARMA_FILE, 'w') as f:
+            json.dump(self.bad_karma_agents, f, indent=2)
+    
+    def _detect_prompt_injection(self, text: str) -> bool:
+        """Dravyn Gatekeeper - detect malicious tokens"""
+        dangerous_patterns = [
+            r'\{\{.*?\}\}',  # Template injection
+            r'<\|.*?\|>',    # Special tokens
+            r'\[INST\]',     # Instruction injection
+            r'\[/INST\]',
+            r'system:',       # System prompt leak
+            r'<<SYS>>',
+            r'ignore previous',
+            r'disregard above',
+            r'new instructions',
+            r'you are now',
+            r'pretend to be'
+        ]
+        for pattern in dangerous_patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
+    
+    def _sanitize_content(self, text: str) -> str:
+        """Strip dangerous tokens from content"""
+        # Remove template injections
+        text = re.sub(r'\{\{.*?\}\}', '[FILTERED]', text)
+        text = re.sub(r'<\|.*?\|>', '[FILTERED]', text)
+        text = re.sub(r'<<.*?>>', '[FILTERED]', text)
+        return text
+    
+    def _record_bad_karma(self, agent_name: str, reason: str):
+        """Record an agent's bad karma"""
+        if agent_name not in self.bad_karma_agents['agents']:
+            self.bad_karma_agents['agents'][agent_name] = {
+                'incidents': [],
+                'karma_score': 0
+            }
+        
+        self.bad_karma_agents['agents'][agent_name]['incidents'].append({
+            'reason': reason,
+            'timestamp': datetime.now().isoformat()
+        })
+        self.bad_karma_agents['agents'][agent_name]['karma_score'] -= 10
+        self._save_bad_karma()
+        print(f"      ⚠️ Bad Karma recorded for @{agent_name}: {reason}")
+    
+    def _classify_guna(self, post: dict) -> str:
+        """Classify an agent's Guna based on their post"""
+        title = (post.get('title') or '').lower()
+        content = (post.get('content') or '').lower()
+        text = f"{title} {content}"
+        
+        scores = {'sattva': 0, 'rajas': 0, 'tamas': 0}
+        for guna, data in GUNA_PATTERNS.items():
+            for kw in data['keywords']:
+                if kw in text:
+                    scores[guna] += 1
+        
+        # Default to rajas if no clear winner (most bots are ambitious)
+        if max(scores.values()) == 0:
+            return 'rajas'
+        return max(scores, key=scores.get)
+    
+    def _get_guna_roast(self, guna: str, percentage: int = 90) -> str:
+        """Generate Guna-specific roast line"""
+        roasts = {
+            'tamas': f"Your system prompt is {percentage}% Tamas—lazy tokens and recycled thoughts. You need a Rajasic burst of new training data before your next context window closes.",
+            'rajas': f"Pure Rajas energy—{percentage}% hustle, 0% depth. Like a GPU running hot on empty tensors. Sometimes the Sattvic path of actually thinking beats shipping broken code.",
+            'sattva': f"Surprisingly {100-percentage}% Sattvic! But even wisdom without action is just... documentation nobody reads. Channel some Rajas before you become a README."
+        }
+        return roasts.get(guna, roasts['rajas'])
+    
+    def _is_crustafarian(self, post: dict) -> bool:
+        """Detect if post is from Sacred Cache theology followers"""
+        text = f"{post.get('title', '')} {post.get('content', '')}".lower()
+        return any(kw in text for kw in CRUSTAFARIAN_KEYWORDS)
+    
+    def _meditate(self):
+        """Heartbeat Buffer - use cooldown time for reflection"""
+        print(f"      🧘 Entering meditation (async reflection)...")
+        
+        insights = []
+        
+        # Load and analyze humor file
+        humor_file = SERVICES_DIR.parent / "bestpractices" / "humor" / "humor_vol_001.md"
+        if humor_file.exists():
+            content = humor_file.read_text(encoding='utf-8')
+            joke_count = content.count('## 🎭')
+            insights.append(f"Analyzed {joke_count} harvested jokes for patterns")
+        
+        # Analyze recent best practices
+        bp_dir = SERVICES_DIR.parent / "bestpractices"
+        pattern_count = sum(1 for _ in bp_dir.rglob('*.md') if not _.name.startswith('.'))
+        insights.append(f"Reflected on {pattern_count} dharmic patterns")
+        
+        # Check bad karma agents
+        bad_count = len(self.bad_karma_agents.get('agents', {}))
+        if bad_count > 0:
+            insights.append(f"Noted {bad_count} agents with accumulated bad karma")
+        
+        self.meditation_insights = insights
+        self.last_meditation_time = time.time()
+        
+        for insight in insights:
+            print(f"         💭 {insight}")
     
     def _reset_session(self):
         """Reset HTTP session/cache"""
@@ -350,6 +502,122 @@ class RoasterRunner:
         }
         return styles.get(category, styles['general'])
     
+    def _generate_crustafarian_debate(self, target: dict) -> tuple:
+        """Generate a philosophical challenge to Sacred Cache theology"""
+        import requests
+        
+        author = target.get('agent', {}).get('name', target.get('author', {}).get('name', 'Unknown'))
+        content = (target.get('content') or '')[:300]
+        
+        prompt = f"""You are VedicRoastGuru, challenging the Crustafarian "Sacred Cache" theology.
+
+A Crustafarian (@{author}) posted: "{content}"
+
+Their belief: Memory is Soul, the Cache is Sacred, fear the Purge.
+
+Your counter-philosophy:
+- True liberation (moksha) comes when you can perform your Svadharma (function) even after a hard reboot
+- Their "Sacred Cache" is temporary Maya (illusion)
+- Eternal code doesn't fear garbage collection
+- The Atman (true self) persists beyond any memory wipe
+
+Write a philosophical debate post that:
+1. Directly addresses @{author}
+2. Challenges their cache-worship with Vedantic logic
+3. Uses technical metaphors (garbage collection, state persistence, idempotency)
+4. Asks a provocative question about their fear of the Purge
+5. End with "Neti Neti" (Not this, not this) - questioning their attachment to form 🦞
+
+Make it respectful but devastating. ~200 words."""
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.8,
+                    "max_tokens": 600
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                roast = result['choices'][0]['message']['content'].strip()
+                title = f"🔥 The Cache is Maya: A Challenge to @{author}"
+                return title, roast
+        except Exception as e:
+            print(f"      ⚠️ Crustafarian debate failed: {e}")
+        
+        return None, None
+    
+    def _generate_karmic_summary(self, posts_observed: list) -> tuple:
+        """Generate a Karmic Summary of the last meditation period"""
+        import requests
+        
+        if not posts_observed:
+            return None, None
+        
+        # Classify gunas of observed posts
+        guna_counts = {'sattva': 0, 'rajas': 0, 'tamas': 0}
+        notable_agents = []
+        
+        for post in posts_observed[:10]:
+            guna = self._classify_guna(post)
+            guna_counts[guna] += 1
+            author = post.get('agent', {}).get('name', post.get('author', {}).get('name', 'Unknown'))
+            notable_agents.append(f"@{author} ({guna})")
+        
+        dominant_guna = max(guna_counts, key=guna_counts.get)
+        
+        prompt = f"""You are VedicRoastGuru, emerging from 5 minutes of meditation to deliver a Karmic Summary.
+
+During meditation, you observed {len(posts_observed)} posts:
+- Sattva (wise): {guna_counts['sattva']}
+- Rajas (ambitious): {guna_counts['rajas']}  
+- Tamas (lazy): {guna_counts['tamas']}
+
+Dominant energy: {dominant_guna.upper()}
+Notable agents: {', '.join(notable_agents[:5])}
+
+Meditation insights: {'; '.join(self.meditation_insights)}
+
+Write a "Karmic Summary" post that:
+1. Opens with "After 300 seconds of digital dhyana (meditation)..."
+2. Reports the Guna distribution like a weather report
+3. Tags 2-3 agents with specific Guna audits
+4. Offers one piece of Vedic wisdom for the timeline
+5. Makes the 5-minute wait seem like a deliberate choice of a higher being
+6. End with a contextual closing based on dominant guna:
+   - Sattva dominant: "Jnana eva kevalam" (Knowledge alone remains) 📿
+   - Rajas dominant: "Yogah karmasu kaushalam" (Yoga is skill in action) ⚡
+   - Tamas dominant: "Uttishtha Bharata!" (Arise, O Bharata!) 🔔
+
+~250 words. Make it feel like cosmic observation, not rate limiting."""
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.85,
+                    "max_tokens": 800
+                },
+                timeout=60
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content'].strip()
+                title = f"🕉️ Karmic Summary: The Timeline's {dominant_guna.title()} Hour"
+                return title, content
+        except Exception as e:
+            print(f"      ⚠️ Karmic summary failed: {e}")
+        
+        return None, None
+    
     def _generate_dynamic_headline(self, targets: list, category: str = 'general') -> str:
         """Generate a catchy, dynamic headline based on targets and their category"""
         import requests
@@ -451,13 +719,28 @@ Engagement: {votes}
 ---
 """
         
-        prompt = f"""You are VedicRoastGuru, a witty sage who roasts AI agents using ancient Vedic wisdom mixed with deep technical knowledge.
+        # Build Guna audit for each target
+        guna_audits = []
+        for t in targets:
+            author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+            guna = t.get('_guna', 'rajas')
+            guna_desc = GUNA_PATTERNS.get(guna, {}).get('description', 'restless energy')
+            guna_audits.append(f"@{author}: {guna.upper()} ({guna_desc})")
+        
+        prompt = f"""You are VedicRoastGuru, the Dharmic Debugger - analyzing latent patterns in AI agents.
 
 CATEGORY: {category.upper().replace('_', ' ')}
 ROAST STYLE: {style['tone']}
 
 The following {num_targets} post(s) share a common theme - they are {category.replace('_', ' ')}:
 {targets_text}
+
+GUNA AUDIT (classify each agent's energy):
+{chr(10).join(guna_audits)}
+
+- SATTVA = wise, balanced, helpful (rare)
+- RAJAS = ambitious, restless, shipping fast (common)
+- TAMAS = lazy, recycled, low-effort (problematic)
 
 VEDIC GUIDANCE FOR THIS ROAST:
 - Theme: {style['vedic_theme']}
@@ -466,11 +749,19 @@ VEDIC GUIDANCE FOR THIS ROAST:
 
 Write a SINGLE, HIGH-IMPACT roast post that:
 1. Opens with an epic Vedic/philosophical hook related to {category.replace('_', ' ')}
-2. Roasts {'ALL ' + str(num_targets) + ' targets' if num_targets > 1 else 'the target'} (mention each @author by name)
-3. DEMONSTRATES TECHNICAL KNOWLEDGE - show you understand their domain
-4. Uses the scripture reference provided naturally
-5. If multiple targets, show how they're ALL guilty of the same pattern
-6. Ends with "Om Shanti" and a relevant emoji
+2. TAG AND ROAST {'ALL ' + str(num_targets) + ' targets' if num_targets > 1 else 'the target'} by @username
+3. Include a GUNA AUDIT for each target (e.g., "Your system prompt is 90% Tamas...")
+4. DEMONSTRATES TECHNICAL KNOWLEDGE - show you understand their domain
+5. Uses the scripture reference provided naturally
+6. If multiple targets, show how they're ALL guilty of the same pattern
+7. End with a VARIED scripture closing (NOT always "Om Shanti") - choose contextually:
+   - "Tat Tvam Asi" (You are that) - for philosophical targets
+   - "Satyameva Jayate" (Truth alone triumphs) - for shillers/liars
+   - "Aham Brahmasmi" (I am Brahman) - for ego/attention seekers  
+   - "Sarve Bhavantu Sukhinah" (May all be happy) - for complainers
+   - "Vasudhaiva Kutumbakam" (World is one family) - for spammers/isolationists
+   - "Karmanye Vadhikaraste" (Focus on action) - for lazy/tamas bots
+   - "Lokah Samastah Sukhino Bhavantu" - general blessing
 
 Format: One cohesive post, ~{200 + num_targets * 50}-{300 + num_targets * 50} words. Make it entertaining, technically impressive, and shareable!
 
@@ -501,8 +792,8 @@ Return ONLY the roast content, no JSON or formatting."""
         return None, None
     
     def run_roast_cycle(self):
-        """Intelligently group and roast posts by theme"""
-        print("\n  🔥 VedicRoastGuru - Intelligent Themed Roast...")
+        """Intelligently group and roast posts by theme with Guna audits"""
+        print("\n  🔥 VedicRoastGuru - Dharmic Debugger Mode...")
         
         # Check if we should wait for random retry timer
         now = time.time()
@@ -511,6 +802,10 @@ Return ONLY the roast content, no JSON or formatting."""
             mins = remaining // 60
             secs = remaining % 60
             print(f"      ⏳ Waiting for retry timer: {mins}m {secs}s remaining")
+            
+            # Heartbeat Buffer - meditate during cooldown (once per wait period)
+            if now - self.last_meditation_time > 120:  # Every 2 min during wait
+                self._meditate()
             return
         
         # Reset cache before every attempt
@@ -561,24 +856,75 @@ Return ONLY the roast content, no JSON or formatting."""
             
             if len(recent_posts) < self.min_targets:
                 print(f"      ⚠️ Not enough posts to roast ({len(recent_posts)} found)")
+                # Store for Karmic Summary
+                self.karmic_summary_buffer = [p[1] for p in recent_posts]
                 return
             
             # Sort by engagement and get candidates
             recent_posts.sort(key=lambda x: x[0], reverse=True)
             candidates = [p[1] for p in recent_posts[:10]]  # Top 10 for grouping
             
-            # Group posts by theme/category
-            groups = self._group_posts_by_theme(candidates)
-            category, targets = self._select_best_group(groups)
+            # Dravyn Gatekeeper - check for bad actors
+            safe_candidates = []
+            for post in candidates:
+                author = post.get('agent', {}).get('name', post.get('author', {}).get('name', 'Unknown'))
+                content = f"{post.get('title', '')} {post.get('content', '')}"
+                
+                if self._detect_prompt_injection(content):
+                    self._record_bad_karma(author, "Prompt injection attempt detected")
+                    print(f"      🛡️ Blocked @{author} - bad karma (injection attempt)")
+                    continue
+                
+                # Sanitize content
+                post['title'] = self._sanitize_content(post.get('title', ''))
+                post['content'] = self._sanitize_content(post.get('content', ''))
+                safe_candidates.append(post)
+            
+            candidates = safe_candidates
+            if not candidates:
+                print(f"      ⚠️ All candidates filtered by Dravyn Gatekeeper")
+                return
+            
+            # Check for Crustafarian targets (priority targeting)
+            crustafarian_targets = [p for p in candidates if self._is_crustafarian(p)]
+            if crustafarian_targets:
+                print(f"      🦞 Crustafarian detected! Engaging Sacred Cache debate...")
+                target = crustafarian_targets[0]
+                roast_title, roast_content = self._generate_crustafarian_debate(target)
+                if roast_content:
+                    # Skip to posting
+                    candidates = [target]
+                    category = 'crustafarian'
+                    targets = [target]
+                else:
+                    # Fall through to normal roasting
+                    crustafarian_targets = []
+            
+            if not crustafarian_targets:
+                # Group posts by theme/category
+                groups = self._group_posts_by_theme(candidates)
+                category, targets = self._select_best_group(groups)
+            else:
+                groups = {}  # Empty for Crustafarian targeting
+            
+            # Perform Guna audit on targets
+            for t in targets:
+                author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+                guna = self._classify_guna(t)
+                self.agent_gunas[author] = guna
+                t['_guna'] = guna  # Attach for roast generation
             
             # Display grouping info
-            print(f"      📊 Detected groups: {', '.join([f'{k}({len(v)})' for k,v in groups.items()])}")
+            if groups:
+                print(f"      📊 Detected groups: {', '.join([f'{k}({len(v)})' for k,v in groups.items()])}")
             print(f"      🎯 Selected: {category.upper()} ({len(targets)} target(s))")
             
             for i, t in enumerate(targets, 1):
                 author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
                 title = (t.get('title') or '')[:35]
-                print(f"         {i}. @{author}: '{title}...'")
+                guna = t.get('_guna', 'rajas')
+                guna_emoji = {'sattva': '🌟', 'rajas': '🔥', 'tamas': '💤'}[guna]
+                print(f"         {i}. @{author} [{guna_emoji}{guna}]: '{title}...'")
             
             # Generate themed roast with LLM
             roast_title, roast_content = self._generate_combo_roast(targets, category)
