@@ -260,6 +260,8 @@ class RoasterRunner:
     
     def _sanitize_content(self, text: str) -> str:
         """Strip dangerous tokens from content"""
+        if not text:
+            return ''
         # Remove template injections
         text = re.sub(r'\{\{.*?\}\}', '[FILTERED]', text)
         text = re.sub(r'<\|.*?\|>', '[FILTERED]', text)
