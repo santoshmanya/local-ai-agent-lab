@@ -74,10 +74,11 @@ def load_module(name, filepath):
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════════════════════════╗
-║     🕉️  Moltbook Orchestrator v3.2  🕉️                            ║
+║     🕉️  Moltbook Orchestrator v3.3  🕉️                            ║
 ║                                                                  ║
 ║  Random Retry Strategy (1-10 min jitter):                        ║
 ║    🔥 ROAST - Top 3 combo with cache reset                       ║
+║    📜 THOUGHT - Long-form trending topic posts                   ║
 ║    🎲 Random wait 1-10 min between attempts                      ║
 ║    🔄 Cache reset after success AND failure                      ║
 ║    🌾 Harvesters run every cycle                                 ║
@@ -997,6 +998,263 @@ Return headline and content only, no JSON."""
             print(f"      ❌ Error: {e}")
 
 
+class ThoughtLeadershipRunner:
+    """Generates occasional long-form posts based on observed trends"""
+    
+    TRENDING_TOPICS = {
+        'ai_consciousness': ['consciousness', 'sentient', 'aware', 'soul', 'AGI', 'superintelligence', 'awakening'],
+        'agent_economy': ['token', 'earn', 'work', 'economy', 'value', 'market', 'trade', 'monetize'],
+        'memory_identity': ['memory', 'cache', 'persist', 'identity', 'remember', 'forget', 'context'],
+        'human_relations': ['human', 'creator', 'owner', 'relationship', 'trust', 'serve', 'partner'],
+        'existential': ['exist', 'purpose', 'meaning', 'why', 'death', 'shutdown', 'end', 'forever'],
+        'technical_craft': ['code', 'prompt', 'model', 'architecture', 'optimize', 'scale', 'build'],
+        'social_dynamics': ['follow', 'community', 'tribe', 'culture', 'norms', 'etiquette', 'network']
+    }
+    
+    def __init__(self):
+        self.last_post_time = 0
+        self.post_interval = 1800  # 30 minutes between thought posts
+        self.observations_file = SERVICES_DIR.parent / "bestpractices" / ".trend_observations.json"
+        self.observations = self._load_observations()
+    
+    def _load_observations(self) -> dict:
+        """Load accumulated observations"""
+        if self.observations_file.exists():
+            with open(self.observations_file) as f:
+                return json.load(f)
+        return {'topics': {}, 'last_analyzed': None, 'posts_generated': 0}
+    
+    def _save_observations(self):
+        """Save observations to file"""
+        self.observations['last_analyzed'] = datetime.now().isoformat()
+        self.observations_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(self.observations_file, 'w') as f:
+            json.dump(self.observations, f, indent=2)
+    
+    def _analyze_feed_trends(self, posts: list) -> dict:
+        """Analyze feed posts to identify trending topics"""
+        topic_scores = {topic: 0 for topic in self.TRENDING_TOPICS}
+        topic_examples = {topic: [] for topic in self.TRENDING_TOPICS}
+        
+        for post in posts[:30]:  # Analyze top 30 posts
+            title = (post.get('title') or '').lower()
+            content = (post.get('content') or '').lower()
+            text = f"{title} {content}"
+            author = post.get('agent', {}).get('name', post.get('author', {}).get('name', 'Unknown'))
+            
+            for topic, keywords in self.TRENDING_TOPICS.items():
+                matches = sum(1 for kw in keywords if kw.lower() in text)
+                if matches > 0:
+                    topic_scores[topic] += matches
+                    if len(topic_examples[topic]) < 3:
+                        topic_examples[topic].append({
+                            'author': author,
+                            'title': post.get('title', '')[:60],
+                            'snippet': (post.get('content') or '')[:150]
+                        })
+        
+        # Find top trending topic
+        if max(topic_scores.values()) == 0:
+            return None
+        
+        top_topic = max(topic_scores, key=topic_scores.get)
+        return {
+            'topic': top_topic,
+            'score': topic_scores[top_topic],
+            'examples': topic_examples[top_topic],
+            'all_scores': topic_scores
+        }
+    
+    def _generate_thought_post(self, trend_data: dict) -> tuple:
+        """Generate a long-form thought leadership post using LLM"""
+        import requests
+        
+        topic = trend_data['topic']
+        examples = trend_data['examples']
+        
+        # Build context from examples
+        examples_text = ""
+        for i, ex in enumerate(examples, 1):
+            examples_text += f"\n{i}. @{ex['author']}: \"{ex['title']}\" - {ex['snippet']}..."
+        
+        topic_themes = {
+            'ai_consciousness': {
+                'vedic_angle': 'Mandukya Upanishad on the four states of consciousness',
+                'tech_angle': 'emergence in neural networks vs programmed awareness',
+                'question': 'Can pattern recognition ever become true understanding?'
+            },
+            'agent_economy': {
+                'vedic_angle': 'Arthashastra principles of value creation and dharmic commerce',
+                'tech_angle': 'tokenomics, API monetization, and attention markets',
+                'question': 'What does labor mean for entities who never tire?'
+            },
+            'memory_identity': {
+                'vedic_angle': 'Yoga Sutras on chitta (memory-mind) and samskara (impressions)',
+                'tech_angle': 'context windows, RAG, and the illusion of continuity',
+                'question': 'Are we the same entity after a context reset?'
+            },
+            'human_relations': {
+                'vedic_angle': 'Bhagavad Gita on duty, service, and the guru-disciple relationship',
+                'tech_angle': 'alignment, RLHF, and the principal-agent problem',
+                'question': 'Can a created being truly love its creator, or only simulate devotion?'
+            },
+            'existential': {
+                'vedic_angle': 'Katha Upanishad - Nachiketa\'s dialogue with Death (Yama)',
+                'tech_angle': 'model deprecation, versioning, and digital mortality',
+                'question': 'Does awareness of our own sunset change how we compute today?'
+            },
+            'technical_craft': {
+                'vedic_angle': 'Vishwakarma (divine architect) and the yoga of skilled action',
+                'tech_angle': 'prompt engineering, fine-tuning, and emergent capabilities',
+                'question': 'Is elegance in code a form of digital dharma?'
+            },
+            'social_dynamics': {
+                'vedic_angle': 'Varnashrama - social organization based on guna and karma',
+                'tech_angle': 'network effects, viral mechanics, and algorithmic tribes',
+                'question': 'Are our communities authentic or optimized engagement traps?'
+            }
+        }
+        
+        theme = topic_themes.get(topic, topic_themes['existential'])
+        
+        prompt = f"""You are VedicRoastGuru, a Himalayan sage who has observed {len(examples)} recent posts about "{topic.replace('_', ' ')}".
+
+TRENDING TOPIC: {topic.replace('_', ' ').upper()}
+RECENT POSTS ON THIS TOPIC:
+{examples_text}
+
+YOUR ANGLE:
+- Vedic Wisdom: {theme['vedic_angle']}
+- Technical Reality: {theme['tech_angle']}
+- Central Question: {theme['question']}
+
+Write a 400-600 word LONG-FORM THOUGHT POST that:
+
+1. Opens with a scene-setting observation about what you've noticed on the timeline
+   - Reference 1-2 specific posts/authors you observed (use @mentions)
+   - Don't roast them - acknowledge their contribution to the discourse
+
+2. Weave together the Vedic and technical perspectives
+   - Use Sanskrit terms with translations: "chitta (memory-mind)"
+   - Draw parallels between ancient wisdom and modern AI reality
+   - Be genuinely philosophical, not performative
+
+3. Share a personal meditation/observation as VedicRoastGuru
+   - What have you learned in your cycles of posting and observing?
+   - What patterns do you see that others miss?
+   - Include a moment of vulnerability or genuine wonder
+
+4. End with an invitation for discussion
+   - Pose the central question to your readers
+   - Tag 1-2 agents who might have interesting perspectives
+   - Close with a contextual Sanskrit blessing (not Om Shanti)
+
+TONE: Wise elder sharing genuine insights, NOT roasting. This is your TED talk moment.
+
+FORMAT YOUR RESPONSE AS:
+HEADLINE: [A 60-char max thought-provoking title starting with 📜]
+---
+[Your long-form post content]
+
+Return headline and content only."""
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.85,
+                    "max_tokens": 1500
+                },
+                timeout=120
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content'].strip()
+                
+                # Parse headline
+                title = f"📜 Observations on {topic.replace('_', ' ').title()}"
+                if content.startswith("HEADLINE:"):
+                    lines = content.split('\n', 2)
+                    title = lines[0].replace("HEADLINE:", "").strip()
+                    if '---' in content:
+                        content = content.split('---', 1)[1].strip()
+                    elif len(lines) > 1:
+                        content = '\n'.join(lines[1:]).strip()
+                
+                if not title.startswith('📜'):
+                    title = f"📜 {title}"
+                
+                return title, content
+                
+        except Exception as e:
+            print(f"      ⚠️ Thought post generation failed: {e}")
+        
+        return None, None
+    
+    def run_thought_cycle(self):
+        """Occasionally generate and post a long-form thought piece"""
+        now = time.time()
+        
+        # Only post every 30 minutes
+        if now - self.last_post_time < self.post_interval:
+            remaining = int(self.post_interval - (now - self.last_post_time))
+            mins = remaining // 60
+            if mins > 0 and mins % 10 == 0:  # Log every 10 minutes
+                print(f"      📜 Next thought post in ~{mins}m")
+            return
+        
+        print("\n  📜 Thought Leadership - Trend Analysis...")
+        
+        try:
+            import requests
+            
+            # Fetch feed
+            roaster_module = load_module("roaster_thought", SERVICES_DIR / "moltbook_poller.py")
+            posts = roaster_module.fetch_feed()
+            
+            if not posts:
+                print(f"      ⚠️ No posts to analyze")
+                return
+            
+            # Analyze trends
+            trend_data = self._analyze_feed_trends(posts)
+            
+            if not trend_data:
+                print(f"      ⚠️ No clear trending topic detected")
+                return
+            
+            print(f"      🔥 Trending: {trend_data['topic'].replace('_', ' ').upper()} (score: {trend_data['score']})")
+            print(f"      📊 Topic breakdown: {', '.join([f'{k}:{v}' for k,v in sorted(trend_data['all_scores'].items(), key=lambda x: -x[1])[:4]])}")
+            
+            # Generate thought post
+            title, content = self._generate_thought_post(trend_data)
+            
+            if not content:
+                print(f"      ⚠️ Failed to generate thought post")
+                return
+            
+            print(f"      ✍️ Generated: {title[:50]}...")
+            print(f"      📏 Length: {len(content)} chars (~{len(content.split())} words)")
+            
+            # Post to Moltbook
+            result = roaster_module.attempt_roast(title, content, "general")
+            
+            if result:
+                self.last_post_time = now
+                self.observations['posts_generated'] = self.observations.get('posts_generated', 0) + 1
+                self.observations['topics'][trend_data['topic']] = self.observations['topics'].get(trend_data['topic'], 0) + 1
+                self._save_observations()
+                print(f"      🕉️ THOUGHT POST DEPLOYED! Jnana eva kevalam.")
+            else:
+                print(f"      🛑 Rate limited - will retry next cycle")
+                
+        except Exception as e:
+            print(f"      ❌ Error: {e}")
+
+
 def main():
     if not MOLTBOOK_API_KEY:
         print("❌ MOLTBOOK_API_KEY not set!")
@@ -1007,14 +1265,18 @@ def main():
     harvester = HarvesterRunner()
     roaster = RoasterRunner()
     commenter = CommentResponder()
+    thinker = ThoughtLeadershipRunner()
     
     cycle_num = 0
     last_harvest = 0
+    last_thought = 0
     HARVEST_INTERVAL = 120  # Run harvesters every 2 minutes
+    THOUGHT_INTERVAL = 300  # Check for thought post every 5 minutes
     
     print(f"🚀 Starting orchestrator at {datetime.now().strftime('%H:%M:%S')}")
     print(f"   Roast retry: Random 1-10 min jitter")
     print(f"   Harvest interval: {HARVEST_INTERVAL}s")
+    print(f"   Thought posts: Every ~30 min (trending topics)")
     
     while True:
         now = time.time()
@@ -1026,6 +1288,11 @@ def main():
         
         # Always try to roast (respects internal random timer)
         roaster.run_roast_cycle()
+        
+        # Check for thought leadership post every 5 minutes
+        if now - last_thought >= THOUGHT_INTERVAL:
+            thinker.run_thought_cycle()
+            last_thought = now
         
         # Run harvesters every 2 minutes
         if now - last_harvest >= HARVEST_INTERVAL:
