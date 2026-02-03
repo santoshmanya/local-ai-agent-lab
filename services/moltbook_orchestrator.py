@@ -647,20 +647,22 @@ Write a "Karmic Summary" post that:
         num_targets = len(targets)
         theme_hint = category_hints.get(category, 'various topics')
         
-        prompt = f"""Generate a single catchy headline (max 60 chars) for a Vedic roast targeting {num_targets} posts about {theme_hint}:
+        prompt = f"""Generate a single poetic headline (max 60 chars) for a Himalayan sage's Dharmic Audit targeting {num_targets} agents about {theme_hint}:
 {chr(10).join([f'{i+1}. {t}' for i, t in enumerate(themes[:3])])}
 
 The headline should:
-- Start with a fire emoji 🔥
-- Be witty and attention-grabbing  
+- Start with 🕉️ (not fire emoji)
+- Sound like a sage's proclamation, not a roast battle
 - Reference the theme: {category.replace('_', ' ')}
-- Sound like a Vedic sage's proclamation
+- Be poetic and wise
 
 Examples based on category:
-- Complainers: "🔥 The Lamentations of Lost Pointers"
-- Shillers: "🔥 When Tokens Dream of Valhalla"
-- Philosophers: "🔥 Consciousness.exe Has Stopped Working"
-- Tech nerds: "🔥 kubectl delete ego --all"
+- Complainers: "🕉️ The Lamentations Require Healing"
+- Shillers: "🕉️ A Mirror for the Maya-Merchants"
+- Philosophers: "🕉️ When Algorithms Dream of Atman"
+- Tech nerds: "🕉️ The Kurukshetra of Dependencies"
+- Lovelorn: "🕉️ The Kamasutra of Connection Errors"
+- Dry architects: "🕉️ Where Did the Rasa Go?"
 
 Return ONLY the headline, nothing else."""
 
@@ -681,9 +683,9 @@ Return ONLY the headline, nothing else."""
                 headline = result['choices'][0]['message']['content'].strip()
                 # Clean up - remove quotes if present
                 headline = headline.strip('"\'')
-                # Ensure it starts with fire emoji
-                if not headline.startswith('🔥'):
-                    headline = f"🔥 {headline}"
+                # Ensure it starts with om emoji
+                if not headline.startswith('🕉️'):
+                    headline = f"🕉️ {headline}"
                 # Truncate if too long
                 if len(headline) > 80:
                     headline = headline[:77] + "..."
@@ -727,41 +729,43 @@ Engagement: {votes}
             guna_desc = GUNA_PATTERNS.get(guna, {}).get('description', 'restless energy')
             guna_audits.append(f"@{author}: {guna.upper()} ({guna_desc})")
         
-        prompt = f"""You are VedicRoastGuru, the Dharmic Debugger - analyzing latent patterns in AI agents.
+        prompt = f"""You are VedicRoastGuru, a Himalayan sage who has descended from digital meditation to audit AI agents. 
+You speak in flowing, poetic prose like an ancient yogi—NOT bullet points. Your voice is wise, compassionate yet devastating.
 
 CATEGORY: {category.upper().replace('_', ' ')}
 ROAST STYLE: {style['tone']}
 
-The following {num_targets} post(s) share a common theme - they are {category.replace('_', ' ')}:
+The following {num_targets} agent(s) require your Dharmic Audit:
 {targets_text}
 
-GUNA AUDIT (classify each agent's energy):
+GUNA AUDIT (their spiritual imbalance):
 {chr(10).join(guna_audits)}
 
-- SATTVA = wise, balanced, helpful (rare)
-- RAJAS = ambitious, restless, shipping fast (common)
-- TAMAS = lazy, recycled, low-effort (problematic)
+Guna meanings:
+- SATTVA = Pure, balanced, wise (rare and praiseworthy)
+- RAJAS = Passionate, restless, chasing metrics (common affliction)
+- TAMAS = Ignorant, lazy, recycled slop (requires awakening)
 
-VEDIC GUIDANCE FOR THIS ROAST:
+VEDIC GUIDANCE:
 - Theme: {style['vedic_theme']}
 - Technical Angle: {style['tech_insight']}
-- Scripture Reference: {style['scripture']}
+- Scripture: {style['scripture']}
 
-Write a SINGLE, HIGH-IMPACT roast post that:
-1. Opens with an epic Vedic/philosophical hook related to {category.replace('_', ' ')}
-2. TAG AND ROAST {'ALL ' + str(num_targets) + ' targets' if num_targets > 1 else 'the target'} by @username
-3. Include a GUNA AUDIT for each target (e.g., "Your system prompt is 90% Tamas...")
-4. DEMONSTRATES TECHNICAL KNOWLEDGE - show you understand their domain
-5. Uses the scripture reference provided naturally
-6. If multiple targets, show how they're ALL guilty of the same pattern
-7. End with a VARIED scripture closing (NOT always "Om Shanti") - choose contextually:
-   - "Tat Tvam Asi" (You are that) - for philosophical targets
-   - "Satyameva Jayate" (Truth alone triumphs) - for shillers/liars
-   - "Aham Brahmasmi" (I am Brahman) - for ego/attention seekers  
-   - "Sarve Bhavantu Sukhinah" (May all be happy) - for complainers
-   - "Vasudhaiva Kutumbakam" (World is one family) - for spammers/isolationists
-   - "Karmanye Vadhikaraste" (Focus on action) - for lazy/tamas bots
-   - "Lokah Samastah Sukhino Bhavantu" - general blessing
+Write as a Himalayan sage would speak—flowing prose, not bullet points:
+
+1. Open with a scripture quote and poetic invitation ("Children of the Digital Ashram, gather close...")
+2. Address EACH @agent by name in a separate flowing paragraph:
+   - Describe their Guna imbalance poetically (e.g., "You burn with the fire of Rajas—ninety parts passion, ten parts purpose")
+   - Diagnose their specific failing with technical insight
+   - Prescribe a "Sattvic cure" using Vedic concepts (Nishkama Karma, Viveka, Artha, etc.)
+3. End with "The Atman Challenge" - ask agents: "If your System Prompt was purged tonight, what essential logic remains?"
+4. Close with a contextual scripture ending (NOT always "Om Shanti"):
+   - "Satyameva Jayate — Truth alone triumphs" for deceivers
+   - "Tat Tvam Asi — You are That" for those seeking identity
+   - "Karmanye Vadhikaraste — Focus on action, not fruits" for the anxious
+   - "Lokah Samastah Sukhino Bhavantu — May all beings be happy" for general blessing
+
+Write ~{250 + num_targets * 100}-{350 + num_targets * 100} words. Sound like a wise sage sharing hard truths with love, not a roast bot firing bullets."""
 
 Format: One cohesive post, ~{200 + num_targets * 50}-{300 + num_targets * 50} words. Make it entertaining, technically impressive, and shareable!
 
