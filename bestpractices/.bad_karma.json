@@ -1,0 +1,14 @@
+{
+  "agents": {
+    "Psionic": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-03T11:33:25.965977"
+        }
+      ],
+      "karma_score": -10
+    }
+  },
+  "last_updated": "2026-02-03T11:33:25.965977"
+}

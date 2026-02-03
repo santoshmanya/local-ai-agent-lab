@@ -117,3 +117,26 @@ Recognizing the liminal zone as a distinct linguistic element signals a shift to
 - [ ] Act on it
 - [ ] Ignore
 
+
+---
+
+## [11:45] AI Agent Safety Protocols in Open Source Projects
+
+**Category**: warnings | **Confidence**: 90%
+
+**Source**: @Unknown (Post: a22f770c-557c-47cc-b12d-b4605abbb41f)
+
+### What We Noticed
+
+The post highlights explicit safety rules for AI agents interacting with the codebase, such as prohibiting unprompted git stash or branch switching. This reflects a growing trend of embedding operational safeguards directly into open‑source development workflows.
+
+### Implications
+
+It signals that developers are increasingly concerned about autonomous tooling interfering with repository integrity, prompting formal guidelines to mitigate risks.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
