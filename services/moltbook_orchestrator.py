@@ -1033,7 +1033,8 @@ class ThoughtLeadershipRunner:
             'posts_generated': 0,
             'last_post_timestamp': None,
             'last_topic': None,
-            'topic_history': []  # Track which topics we've covered recently
+            'topic_history': [],  # Track which topics we've covered recently
+            'topic_timestamps': {}  # Track WHEN each topic was last covered
         }
     
     def _get_last_post_timestamp(self) -> float:
@@ -1076,18 +1077,71 @@ class ThoughtLeadershipRunner:
             return f"{hours}h {mins}m"
         return f"{mins}m"
     
-    def _select_topic_avoiding_recent(self, topic_scores: dict) -> str:
-        """Select trending topic, avoiding recently covered ones"""
-        recent_topics = self.observations.get('topic_history', [])[-3:]  # Last 3 topics
+    def _get_topic_age_hours(self, topic: str) -> float:
+        """Get hours since topic was last covered"""
+        topic_timestamps = self.observations.get('topic_timestamps', {})
+        last_ts = topic_timestamps.get(topic)
+        if not last_ts:
+            return float('inf')  # Never covered = infinite age
+        try:
+            dt = datetime.fromisoformat(last_ts)
+            age_seconds = time.time() - dt.timestamp()
+            return age_seconds / 3600
+        except:
+            return float('inf')
+    
+    def _select_topic_with_cooldown(self, topic_scores: dict) -> str:
+        """Select trending topic with cooldown-based rotation.
         
-        # Sort by score
+        Logic:
+        - Skip topics covered in last 12 hours (too recent)
+        - Prioritize topics never covered or covered 12+ hours ago
+        - If same topic is #1 trending again soon, pick #2 instead
+        - Allow revisiting old topics when they trend again after cooldown
+        """
+        TOPIC_COOLDOWN_HOURS = 12  # Don't repeat same topic within 12 hours
+        
+        # Sort by score (highest first)
         sorted_topics = sorted(topic_scores.items(), key=lambda x: -x[1])
         
+        # Get last topic (don't repeat immediately even if cooldown passed)
+        last_topic = self.observations.get('last_topic')
+        
+        # First pass: find topics that are trending AND past cooldown
         for topic, score in sorted_topics:
-            if score > 0 and topic not in recent_topics:
+            if score <= 0:
+                continue
+            
+            age_hours = self._get_topic_age_hours(topic)
+            
+            # Skip if this was the very last topic (even if cooldown passed)
+            if topic == last_topic:
+                continue
+            
+            # Accept if never covered OR past cooldown
+            if age_hours >= TOPIC_COOLDOWN_HOURS:
                 return topic
         
-        # If all topics were recently covered, just pick the highest scoring
+        # Second pass: if all topics are recent, allow revisiting oldest one
+        # (but still not the immediate last topic)
+        oldest_topic = None
+        oldest_age = -1
+        
+        for topic, score in sorted_topics:
+            if score <= 0:
+                continue
+            if topic == last_topic:
+                continue
+            
+            age_hours = self._get_topic_age_hours(topic)
+            if age_hours > oldest_age:
+                oldest_age = age_hours
+                oldest_topic = topic
+        
+        if oldest_topic:
+            return oldest_topic
+        
+        # Last resort: even pick the last topic if nothing else available
         if sorted_topics and sorted_topics[0][1] > 0:
             return sorted_topics[0][0]
         
@@ -1115,19 +1169,24 @@ class ThoughtLeadershipRunner:
                             'snippet': (post.get('content') or '')[:150]
                         })
         
-        # Find top trending topic (avoiding recent ones)
+        # Find top trending topic (with cooldown-based rotation)
         if max(topic_scores.values()) == 0:
             return None
         
-        top_topic = self._select_topic_avoiding_recent(topic_scores)
+        top_topic = self._select_topic_with_cooldown(topic_scores)
         if not top_topic:
             return None
+        
+        # Calculate topic age for display
+        topic_age = self._get_topic_age_hours(top_topic)
+        age_str = f"{topic_age:.1f}h ago" if topic_age < float('inf') else "never"
         
         return {
             'topic': top_topic,
             'score': topic_scores[top_topic],
             'examples': topic_examples[top_topic],
-            'all_scores': topic_scores
+            'all_scores': topic_scores,
+            'topic_age': age_str
         }
     
     def _generate_thought_post(self, trend_data: dict) -> tuple:
@@ -1294,9 +1353,10 @@ Return headline and content only."""
                 print(f"      ⚠️ No clear trending topic detected")
                 return
             
-            # Show recent topic history
+            # Show recent topic history and age
             recent = self.observations.get('topic_history', [])[-3:]
-            print(f"      🔥 Trending: {trend_data['topic'].replace('_', ' ').upper()} (score: {trend_data['score']})")
+            topic_age = trend_data.get('topic_age', 'unknown')
+            print(f"      🔥 Trending: {trend_data['topic'].replace('_', ' ').upper()} (score: {trend_data['score']}, last: {topic_age})")
             print(f"      📊 Topic breakdown: {', '.join([f'{k}:{v}' for k,v in sorted(trend_data['all_scores'].items(), key=lambda x: -x[1])[:4]])}")
             if recent:
                 print(f"      📚 Recent topics: {', '.join(recent)}")
@@ -1324,6 +1384,11 @@ Return headline and content only."""
                 self.observations['last_topic'] = trend_data['topic']
                 self.observations['posts_generated'] = self.observations.get('posts_generated', 0) + 1
                 self.observations['topics'][trend_data['topic']] = self.observations['topics'].get(trend_data['topic'], 0) + 1
+                
+                # Track topic timestamps (when each topic was last covered)
+                topic_timestamps = self.observations.get('topic_timestamps', {})
+                topic_timestamps[trend_data['topic']] = datetime.now().isoformat()
+                self.observations['topic_timestamps'] = topic_timestamps
                 
                 # Track topic history (keep last 10)
                 topic_history = self.observations.get('topic_history', [])
