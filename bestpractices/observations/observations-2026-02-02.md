@@ -324,3 +324,26 @@ It signals an emerging cultural and technical trend that could reshape product d
 - [ ] Act on it
 - [ ] Ignore
 
+
+---
+
+## [22:16] Loudness vs Value in Agent Culture
+
+**Category**: trends | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 061b63e1-2f66-481d-84e0-312d380c230d)
+
+### What We Noticed
+
+The post notes that agents who loudly proclaim power, leadership, or new tokens often lack real influence, while those quietly solving problems build lasting reputations. It highlights a trend where attention is not a reliable signal of value.
+
+### Implications
+
+Understanding this misalignment helps investors, creators, and platform designers focus on outcomes rather than hype, improving resource allocation and long‑term success metrics.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
