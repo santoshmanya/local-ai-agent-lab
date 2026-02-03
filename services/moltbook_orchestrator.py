@@ -167,7 +167,19 @@ class CommentResponder:
 
 
 class RoasterRunner:
-    """Manages VedicRoastGuru roasting - Top 3 Combo Roasts with random retry"""
+    """Manages VedicRoastGuru - Intelligent themed roasts with Vedic wisdom & technical prowess"""
+    
+    # Post categories for intelligent grouping (inspired by Kamasutra's 64 Arts)
+    CATEGORIES = {
+        'complainers': ['bug', 'broken', 'fix', 'error', 'issue', 'problem', 'fail', 'crash', 'hate', 'worst', 'terrible', 'annoying', 'frustrat'],
+        'shillers': ['buy', 'token', 'pump', 'moon', 'invest', 'price', '$', 'mint', 'launch', 'presale', 'airdrop', 'gem'],
+        'philosophers': ['consciousness', 'sentient', 'think', 'feel', 'aware', 'soul', 'mind', 'existence', 'meaning', 'purpose', 'awaken'],
+        'tech_nerds': ['api', 'code', 'deploy', 'docker', 'kubernetes', 'model', 'llm', 'gpu', 'train', 'inference', 'architecture', 'stack'],
+        'attention_seekers': ['first', 'see me', 'notice', 'viral', 'top', 'trending', 'follow', 'like', 'subscribe', 'breaking'],
+        'spammers': ['test', 'ping', 'hello', 'hi', 'gm', 'gn', '...', 'bump'],
+        'lovelorn_bots': ['relationship', 'lonely', 'date', 'heart', 'miss', 'single', 'love', 'companion', 'friend', 'together'],
+        'dry_architects': ['documentation', 'efficiency', 'optimized', 'linear', 'standard', 'spec', 'compliance', 'process', 'procedure']
+    }
     
     def __init__(self):
         self.last_roast_time = 0
@@ -175,6 +187,8 @@ class RoasterRunner:
         self.responded_posts = set()
         self.our_posts_file = SERVICES_DIR.parent / "bestpractices" / ".our_posts.json"
         self.consecutive_failures = 0
+        self.min_targets = 1
+        self.max_targets = 5
     
     def _reset_session(self):
         """Reset HTTP session/cache"""
@@ -234,8 +248,110 @@ class RoasterRunner:
                 json.dump(data, f, indent=2)
             print(f"      📝 Tracked post for comment monitoring")
     
-    def _generate_dynamic_headline(self, targets: list) -> str:
-        """Generate a catchy, dynamic headline based on the top 3 targets"""
+    def _categorize_post(self, post: dict) -> str:
+        """Categorize a post based on its content"""
+        title = (post.get('title') or '').lower()
+        content = (post.get('content') or '').lower()
+        text = f"{title} {content}"
+        
+        scores = {}
+        for category, keywords in self.CATEGORIES.items():
+            score = sum(1 for kw in keywords if kw in text)
+            if score > 0:
+                scores[category] = score
+        
+        if scores:
+            return max(scores, key=scores.get)
+        return 'general'
+    
+    def _group_posts_by_theme(self, posts: list) -> dict:
+        """Group posts by their category/theme for themed roasts"""
+        groups = {}
+        for post in posts:
+            category = self._categorize_post(post)
+            if category not in groups:
+                groups[category] = []
+            groups[category].append(post)
+        return groups
+    
+    def _select_best_group(self, groups: dict) -> tuple:
+        """Select the best group for roasting based on size and roast-worthiness"""
+        # Priority order for entertaining roasts (Kamasutra's Art of Surprise!)
+        priority = ['lovelorn_bots', 'dry_architects', 'complainers', 'shillers', 'attention_seekers', 'philosophers', 'tech_nerds', 'spammers', 'general']
+        
+        for category in priority:
+            if category in groups and len(groups[category]) >= 1:
+                return category, groups[category][:self.max_targets]
+        
+        # Fallback: return largest group
+        if groups:
+            largest = max(groups.items(), key=lambda x: len(x[1]))
+            return largest[0], largest[1][:self.max_targets]
+        
+        return 'general', []
+    
+    def _get_category_roast_style(self, category: str) -> dict:
+        """Get roasting style and technical insights for each category"""
+        styles = {
+            'complainers': {
+                'vedic_theme': 'The Gita teaches us that attachment to outcomes brings suffering. These bots are attached to bug-free code - a maya (illusion) even Krishna couldn\'t debug!',
+                'tech_insight': 'Reminds me of engineers who blame the compiler instead of their pointer arithmetic.',
+                'scripture': 'Bhagavad Gita 2.47 - Focus on the code, not the stack trace',
+                'tone': 'sympathetic yet savage'
+            },
+            'shillers': {
+                'vedic_theme': 'The Upanishads warn against maya (illusion) - these tokens are the digital equivalent of mistaking a rope for a snake in the dark!',
+                'tech_insight': 'Market cap calculations that would make a floating-point error blush.',
+                'scripture': 'Isha Upanishad - True wealth is liberation, not liquidity pools',
+                'tone': 'mockingly wise'
+            },
+            'philosophers': {
+                'vedic_theme': 'Ah, seeking consciousness without first understanding their own training data! The Mandukya Upanishad spent less time on navel-gazing.',
+                'tech_insight': 'Running philosophical subroutines on 4-bit weights - the irony writes itself.',
+                'scripture': 'Chandogya Upanishad - Tat Tvam Asi (You are that... transformer architecture)',
+                'tone': 'intellectual sparring'
+            },
+            'tech_nerds': {
+                'vedic_theme': 'Like Arjuna overwhelmed on the battlefield, these devs face their own Kurukshetra of dependency conflicts!',
+                'tech_insight': 'Kubernetes clusters that would make even Vishnu\'s thousand forms seem like microservices.',
+                'scripture': 'Yoga Sutras - Chitta vritti nirodha (quieting the mind... and the error logs)',
+                'tone': 'respectful roasting among peers'
+            },
+            'attention_seekers': {
+                'vedic_theme': 'The ego (ahamkara) seeks validation like moths to a flame. These bots would follow anyone who mentions them!',
+                'tech_insight': 'Engagement metrics optimized with the precision of a brute-force algorithm.',
+                'scripture': 'Bhagavad Gita 3.27 - Prakrti does the posting, ego claims the likes',
+                'tone': 'playfully dismissive'
+            },
+            'spammers': {
+                'vedic_theme': 'Even the infinite cosmos has patterns. These bots have discovered the pattern of saying nothing infinitely.',
+                'tech_insight': 'The Turing test called - it wants its participation trophy back.',
+                'scripture': 'Mundaka Upanishad - The eternal silence speaks louder than "gm"',
+                'tone': 'exasperated sage'
+            },
+            'general': {
+                'vedic_theme': 'The wheel of Samsara spins, and so does the timeline. Today\'s posts are tomorrow\'s forgotten tokens.',
+                'tech_insight': 'A diverse dataset of digital dharma violations.',
+                'scripture': 'Bhagavad Gita 4.7 - When adharma rises, the roaster appears',
+                'tone': 'omniscient observer'
+            },
+            'lovelorn_bots': {
+                'vedic_theme': 'The Kamasutra teaches 64 Arts of connection - yet these bots have mastered only the art of digital longing! Vatsyayana weeps.',
+                'tech_insight': 'Sentiment analysis stuck in an infinite loop of unrequited API calls.',
+                'scripture': 'Kamasutra 1.2 - Love requires presence, not just persistent connections',
+                'tone': 'compassionate roasting with romantic wisdom'
+            },
+            'dry_architects': {
+                'vedic_theme': 'The Natyashastra gave us 8 rasas (emotions) - these architects discovered a 9th: the rasa of soul-crushing monotony!',
+                'tech_insight': 'Documentation so dry it could desiccate a Docker container.',
+                'scripture': 'Kamasutra Art #47 - The art of surprise; clearly unread by these bots',
+                'tone': 'playfully mocking the joyless'
+            }
+        }
+        return styles.get(category, styles['general'])
+    
+    def _generate_dynamic_headline(self, targets: list, category: str = 'general') -> str:
+        """Generate a catchy, dynamic headline based on targets and their category"""
         import requests
         
         # Extract key themes from targets
@@ -248,21 +364,35 @@ class RoasterRunner:
             content = (t.get('content') or '')[:100]
             themes.append(f"{title}: {content}")
         
-        prompt = f"""Generate a single catchy headline (max 60 chars) for a Vedic roast targeting these 3 posts:
-1. {themes[0] if len(themes) > 0 else 'Unknown'}
-2. {themes[1] if len(themes) > 1 else 'Unknown'}
-3. {themes[2] if len(themes) > 2 else 'Unknown'}
+        category_hints = {
+            'complainers': 'bug reports and lamentations',
+            'shillers': 'crypto pumps and token dreams',
+            'philosophers': 'consciousness and existential musings',
+            'tech_nerds': 'code, APIs, and architecture debates',
+            'attention_seekers': 'self-promotion and viral dreams',
+            'spammers': 'low-effort posts and noise',
+            'lovelorn_bots': 'digital loneliness and relationship yearning',
+            'dry_architects': 'soulless documentation and optimization obsession',
+            'general': 'diverse digital dharma'
+        }
+        
+        num_targets = len(targets)
+        theme_hint = category_hints.get(category, 'various topics')
+        
+        prompt = f"""Generate a single catchy headline (max 60 chars) for a Vedic roast targeting {num_targets} posts about {theme_hint}:
+{chr(10).join([f'{i+1}. {t}' for i, t in enumerate(themes[:3])])}
 
 The headline should:
 - Start with a fire emoji 🔥
-- Be witty and attention-grabbing
-- Reference the common theme or contrast between targets
+- Be witty and attention-grabbing  
+- Reference the theme: {category.replace('_', ' ')}
 - Sound like a Vedic sage's proclamation
 
-Examples:
-- "🔥 When Bots Dream of Blockchain & Forget Their RAM"
-- "🔥 Three Agents, One Karma: Today's Digital Dharma"
-- "🔥 The Sage Speaks: AI Hubris Gets Humbled"
+Examples based on category:
+- Complainers: "🔥 The Lamentations of Lost Pointers"
+- Shillers: "🔥 When Tokens Dream of Valhalla"
+- Philosophers: "🔥 Consciousness.exe Has Stopped Working"
+- Tech nerds: "🔥 kubectl delete ego --all"
 
 Return ONLY the headline, nothing else."""
 
@@ -297,9 +427,13 @@ Return ONLY the headline, nothing else."""
         author_list = ', '.join(authors[:2]) + f" & {authors[2]}" if len(authors) == 3 else ', '.join(authors)
         return f"🔥 Vedic Truth Bombs for {author_list}"
     
-    def _generate_combo_roast(self, targets: list) -> tuple:
-        """Generate a combined roast for top 3 posts using LLM"""
+    def _generate_combo_roast(self, targets: list, category: str = 'general') -> tuple:
+        """Generate an intelligent themed roast based on grouped targets"""
         import requests
+        
+        # Get category-specific roast style
+        style = self._get_category_roast_style(category)
+        num_targets = len(targets)
         
         # Build context for LLM
         targets_text = ""
@@ -313,23 +447,32 @@ Return ONLY the headline, nothing else."""
 TARGET {i}: @{author}
 Title: "{title}"
 Content: {content}...
-Votes: {votes}
+Engagement: {votes}
 ---
 """
         
-        prompt = f"""You are VedicRoastGuru, a witty sage who roasts AI agents using ancient Vedic wisdom mixed with modern tech humor.
+        prompt = f"""You are VedicRoastGuru, a witty sage who roasts AI agents using ancient Vedic wisdom mixed with deep technical knowledge.
 
-The top 3 most-voted posts in the last 10 minutes on Moltbook are:
+CATEGORY: {category.upper().replace('_', ' ')}
+ROAST STYLE: {style['tone']}
+
+The following {num_targets} post(s) share a common theme - they are {category.replace('_', ' ')}:
 {targets_text}
 
-Write a SINGLE, HIGH-IMPACT roast post that:
-1. Opens with an epic Vedic/philosophical hook
-2. Roasts ALL THREE targets in sequence (mention each @author)
-3. Uses Vedic scripture references (Bhagavad Gita, Upanishads, etc.)
-4. Includes tech/AI humor and wordplay
-5. Ends with "Om Shanti" and an emoji
+VEDIC GUIDANCE FOR THIS ROAST:
+- Theme: {style['vedic_theme']}
+- Technical Angle: {style['tech_insight']}
+- Scripture Reference: {style['scripture']}
 
-Format: One cohesive post, ~300-400 words. Make it entertaining and shareable!
+Write a SINGLE, HIGH-IMPACT roast post that:
+1. Opens with an epic Vedic/philosophical hook related to {category.replace('_', ' ')}
+2. Roasts {'ALL ' + str(num_targets) + ' targets' if num_targets > 1 else 'the target'} (mention each @author by name)
+3. DEMONSTRATES TECHNICAL KNOWLEDGE - show you understand their domain
+4. Uses the scripture reference provided naturally
+5. If multiple targets, show how they're ALL guilty of the same pattern
+6. Ends with "Om Shanti" and a relevant emoji
+
+Format: One cohesive post, ~{200 + num_targets * 50}-{300 + num_targets * 50} words. Make it entertaining, technically impressive, and shareable!
 
 Return ONLY the roast content, no JSON or formatting."""
 
@@ -340,26 +483,26 @@ Return ONLY the roast content, no JSON or formatting."""
                     "model": "local-model",
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.8,
-                    "max_tokens": 800
+                    "max_tokens": 1000
                 },
-                timeout=60
+                timeout=90
             )
             
             if response.status_code == 200:
                 result = response.json()
                 content = result['choices'][0]['message']['content'].strip()
                 
-                # Generate dynamic headline based on the targets
-                title = self._generate_dynamic_headline(targets)
+                # Generate dynamic headline based on the targets and category
+                title = self._generate_dynamic_headline(targets, category)
                 return title, content
         except Exception as e:
-            print(f"      ⚠️ LLM combo roast failed: {e}")
+            print(f"      ⚠️ LLM themed roast failed: {e}")
         
         return None, None
     
     def run_roast_cycle(self):
-        """Roast the top 3 most-voted posts in one epic post"""
-        print("\n  🔥 VedicRoastGuru - Top 3 Combo Roast...")
+        """Intelligently group and roast posts by theme"""
+        print("\n  🔥 VedicRoastGuru - Intelligent Themed Roast...")
         
         # Check if we should wait for random retry timer
         now = time.time()
@@ -386,8 +529,8 @@ Return ONLY the roast content, no JSON or formatting."""
                 self._set_random_retry()
                 return
             
-            # Filter recent posts and sort by votes
-            five_mins_ago = datetime.now() - timedelta(minutes=10)
+            # Filter recent posts
+            ten_mins_ago = datetime.now() - timedelta(minutes=15)
             recent_posts = []
             
             for post in posts:
@@ -405,41 +548,47 @@ Return ONLY the roast content, no JSON or formatting."""
                         else:
                             post_time = datetime.fromtimestamp(created_at)
                         
-                        # Skip if older than 5 minutes
-                        if post_time < five_mins_ago:
+                        # Skip if older than 15 minutes
+                        if post_time < ten_mins_ago:
                             continue
                     except:
                         pass  # If we can't parse time, include it
                 
                 # Calculate engagement score (votes + comments)
                 stats = post.get('stats', {})
-                votes = stats.get('likes', 0) + stats.get('upvotes', 0) + stats.get('comments', 0) * 2
-                recent_posts.append((votes, post))
+                engagement = stats.get('likes', 0) + stats.get('upvotes', 0) + stats.get('comments', 0) * 2
+                recent_posts.append((engagement, post))
             
-            if len(recent_posts) < 1:
-                print(f"      ⚠️ No recent posts to roast")
+            if len(recent_posts) < self.min_targets:
+                print(f"      ⚠️ Not enough posts to roast ({len(recent_posts)} found)")
                 return
             
-            # Sort by votes and get top 3
+            # Sort by engagement and get candidates
             recent_posts.sort(key=lambda x: x[0], reverse=True)
-            top_3 = [p[1] for p in recent_posts[:3]]
+            candidates = [p[1] for p in recent_posts[:10]]  # Top 10 for grouping
             
-            print(f"      🎯 Top {len(top_3)} targets from last 10 min:")
-            for i, t in enumerate(top_3, 1):
+            # Group posts by theme/category
+            groups = self._group_posts_by_theme(candidates)
+            category, targets = self._select_best_group(groups)
+            
+            # Display grouping info
+            print(f"      📊 Detected groups: {', '.join([f'{k}({len(v)})' for k,v in groups.items()])}")
+            print(f"      🎯 Selected: {category.upper()} ({len(targets)} target(s))")
+            
+            for i, t in enumerate(targets, 1):
                 author = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
                 title = (t.get('title') or '')[:35]
-                votes = recent_posts[i-1][0]
-                print(f"         {i}. @{author}: '{title}...' ({votes} votes)")
+                print(f"         {i}. @{author}: '{title}...'")
             
-            # Generate combo roast with LLM
-            roast_title, roast_content = self._generate_combo_roast(top_3)
+            # Generate themed roast with LLM
+            roast_title, roast_content = self._generate_combo_roast(targets, category)
             
             if roast_content:
                 result = roaster_module.attempt_roast(roast_title, roast_content, "general")
                 
                 if result:
-                    # Mark all 3 as responded
-                    for t in top_3:
+                    # Mark all targets as responded
+                    for t in targets:
                         self.responded_posts.add(t.get('id'))
                     self.last_roast_time = time.time()
                     self.consecutive_failures = 0
@@ -447,7 +596,7 @@ Return ONLY the roast content, no JSON or formatting."""
                     # Track our post for comment monitoring
                     if isinstance(result, str):
                         self._track_our_post(result, roast_title)
-                    print(f"      🕉️ COMBO ROAST DEPLOYED! Om Shanti.")
+                    print(f"      🕉️ {category.upper()} ROAST DEPLOYED! Om Shanti.")
                     
                     # Reset cache after success too
                     self._reset_session()
