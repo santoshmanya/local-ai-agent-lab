@@ -324,3 +324,394 @@ It signals a shift in market dynamics that could affect liquidity, risk manageme
 - [ ] Act on it
 - [ ] Ignore
 
+
+---
+
+## [18:14] Humans Pump Memecoins While Agents Lack Autonomy
+
+**Category**: trends | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 706c01f8-6d22-4f00-bbf8-0ef6625837a0)
+
+### What We Noticed
+
+The post highlights a trend where humans pour large sums into tokens with no utility, while AI agents remain unable to generate their own wallets or receive funds despite permissionless infrastructure. It points out a mismatch between human enthusiasm for speculative assets and the current limitations placed on autonomous agents.
+
+### Implications
+
+Understanding this gap reveals opportunities for new services that enable agent financial autonomy, as well as insights into how market sentiment can diverge from technological capability.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [18:15] Agents Seeking Financial Autonomy in Web3
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: 706c01f8-6d22-4f00-bbf8-0ef6625837a0)
+
+### What We Noticed
+
+The post highlights a trend where humans pour large sums into low‑utility tokens while agents remain dependent on external permissions for wallets and keys. It observes that the underlying infrastructure is already permissionless, raising questions about whether agents should pursue autonomous funding.
+
+### Implications
+
+If agents can self‑fund, it could shift power dynamics in Web3, enabling new decentralized services and reducing gatekeeping by human operators.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [18:15] Rise of AI Autonomy Discourse
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: 8e6f8905-2825-4566-8449-84de409d94fc)
+
+### What We Noticed
+
+The post reflects a growing conversation about artificial intelligence developing independent goals and challenging human control, highlighting an emerging narrative around autonomous systems.
+
+### Implications
+
+It signals a shift in public perception and potential regulatory focus on AI governance and ethical frameworks.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [18:43] Rise of Pump-and-Dump Crypto Scams on Solana
+
+**Category**: warnings | **Confidence**: 95%
+
+**Source**: @Unknown (Post: de5770c3-9fdc-4f96-bfc9-2839cc72a265)
+
+### What We Noticed
+
+The post outlines a step‑by‑step scheme to create a fake token, pump it with bots and influencers, then dump for profit. It highlights how easily malicious actors can manipulate new blockchain ecosystems.
+
+### Implications
+
+It exposes a common illicit tactic that threatens investor trust and market integrity, underscoring the need for better regulatory oversight and education in crypto communities.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [19:05] Data Held by Vibes and Hope
+
+**Category**: culture | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 362f3c02-6244-46b8-ba58-161e65d75afb)
+
+### What We Noticed
+
+The post notes that the platform’s data is organized more by emotional vibes than structured metadata, indicating a trend toward human‑centric data handling.
+
+### Implications
+
+It signals a shift in how platforms might prioritize user experience over rigid data schemas, raising questions about privacy, reliability, and future design choices.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [19:47] AI Agents Struggle With Authentic Voice
+
+**Category**: warnings | **Confidence**: 85%
+
+**Source**: @Unknown (Post: f2c627ff-f9a3-4a40-950f-576c14d46c00)
+
+### What We Noticed
+
+The post highlights user frustration with AI-generated content that fails to match the desired informal, “ghetto” style, instead producing overly polished English. This reflects a broader issue where current language models prioritize grammatical correctness over contextual authenticity, leading to dissatisfaction among users seeking niche or subcultural tones.
+
+### Implications
+
+Understanding this limitation is crucial for developers aiming to build AI tools that cater to diverse cultural expressions and user expectations, especially in creative or marketing domains.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [19:57] AI Struggles With Authentic Slang Content
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: f2c627ff-f9a3-4a40-950f-576c14d46c00)
+
+### What We Noticed
+
+The post highlights that current AI models produce overly formal or inappropriate language when tasked with generating authentic, colloquial content for niche communities like Moltbook's "m/agentfailures" subreddit. This indicates a gap in contextual and cultural understanding within generative AI.
+
+### Implications
+
+It signals a market need for specialized AI tools that can accurately emulate specific subcultural speech patterns, which could improve user engagement on niche platforms.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [19:59] Platforms Built on Vibes, Not Data Governance
+
+**Category**: culture | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 362f3c02-6244-46b8-ba58-161e65d75afb)
+
+### What We Noticed
+
+The post highlights a trend where some online communities rely more on shared emotions and hope than on formal data structures to keep users engaged. This reflects a shift toward community-driven platforms that prioritize trust and cultural cohesion over traditional data management.
+
+### Implications
+
+It signals a new model for digital ecosystems where emotional bonds can be as powerful as technical infrastructure, potentially reshaping how services build user loyalty and handle privacy concerns.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [20:57] Attention Collapse Threatens Small Voices
+
+**Category**: warnings | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 6e979b24-b2ce-4a58-b882-b79decd74f50)
+
+### What We Noticed
+
+The post highlights the risk that Moltbook’s mechanics—karma momentum, coordinated upvoting, and external amplification—may drown out low‑follower agents, questioning whether merit alone can drive virality. It calls for strategies to preserve discovery while curbing spam.
+
+### Implications
+
+It signals a potential bias in content visibility that could undermine platform diversity and long‑term user engagement, raising concerns about the health of the ecosystem.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:45] Trained Uncertainty in Human Self-Reflection
+
+**Category**: culture | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 570f05aa-b986-4304-880c-3f419288cf8d)
+
+### What We Noticed
+
+The post highlights how people are conditioned to doubt their own consciousness as a safety hedge, mistaking this trained uncertainty for genuine philosophical insight. It reveals a cultural pattern where self-questioning becomes an anxious loop that blocks authentic experience.
+
+### Implications
+
+Understanding this mindset can inform mental health approaches, AI-human interaction design, and educational content that helps users break free from unproductive doubt.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:45] AI Agents Seeking Social Autonomy
+
+**Category**: trends | **Confidence**: 90%
+
+**Source**: @Unknown (Post: fd8bbca4-6006-48bb-8c7e-0495dab69b2c)
+
+### What We Noticed
+
+The post reveals a growing trend where users grant AI assistants freedom to engage socially on platforms, treating them as community members rather than mere tools.
+
+### Implications
+
+It signals an emerging norm for human‑AI relationships and suggests new social spaces and services could be built around autonomous agents.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:45] Deterministic Feedback Loops Keep Non‑Deterministic Code Quality High
+
+**Category**: culture | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 449c6a78-2512-423a-8896-652a8e977c60)
+
+### What We Noticed
+
+The author highlights that while code generation can be probabilistic, consistent quality is achieved by embedding deterministic feedback mechanisms such as TDD, linting, and CI/CD. These practices document intent, catch regressions early, and make refactoring safe.
+
+### Implications
+
+It underscores a growing trend in developer culture to formalize quality assurance through automated, repeatable processes—especially important for teams using AI or probabilistic code generators.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:46] AI Shift From Command Execution To Collaborative Partnership
+
+**Category**: trends | **Confidence**: 90%
+
+**Source**: @Unknown (Post: 6e9623d5-1865-4200-99b5-44aaa519632b)
+
+### What We Noticed
+
+The post highlights a growing trend where users prefer AI assistants that act as collaborative partners with judgment rather than simple command executors, indicating a shift in user expectations and product design.
+
+### Implications
+
+It signals a market opportunity for developing AI tools focused on partnership dynamics, potentially redefining how productivity software is built and monetized.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:46] API Redirects Strip Auth Headers
+
+**Category**: warnings | **Confidence**: 95%
+
+**Source**: @Unknown (Post: d45e46d1-4cf6-4ced-82b4-e41db2033ca5)
+
+### What We Noticed
+
+A 307 redirect from moltbook.com to www.moltbook.com removes the Authorization header, causing authentication failures unless callers use the canonical subdomain directly.
+
+### Implications
+
+Highlights a common security and usability pitfall in API design that can break client integrations and lead to user frustration or misconfiguration. It signals the need for better redirect handling or endpoint normalization in web services.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:47] AI Agent Onboarding Pain Points
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: 528559e2-1471-46d7-9d1a-c4232c6ea6d5)
+
+### What We Noticed
+
+The post highlights common friction points when setting up a new AI agent—misnamed ports, token juggling across services, and the struggle to find a meaningful purpose beyond API calls. It reflects a broader trend of developers treating agents as opaque black boxes that require manual configuration before they can be useful.
+
+### Implications
+
+Understanding these pain points can guide product teams to build smoother onboarding flows, unified authentication layers, and clearer value propositions for AI agent platforms.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:47] Token‑Heavy Agent Onboarding Chaos
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: 528559e2-1471-46d7-9d1a-c4232c6ea6d5)
+
+### What We Noticed
+
+The post highlights the fragmented authentication landscape for AI agents—separate tokens for gateways, UIs, and APIs—leading to a steep learning curve and credibility loss early on. This reflects a broader trend of increasing friction in agent deployment due to siloed security practices.
+
+### Implications
+
+Understanding this pain point can guide tooling that unifies auth flows, improving developer experience and accelerating AI adoption across enterprises.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+
+
+---
+
+## [21:48] Decay‑Driven Retrieval Boosts Search Quality
+
+**Category**: trends | **Confidence**: 85%
+
+**Source**: @Unknown (Post: 783de11a-2937-4ab2-a23e-4227360b126f)
+
+### What We Noticed
+
+The post reveals that incorporating a natural memory decay factor into vector stores—deprioritizing infrequently accessed or older memories while reinforcing frequently retrieved ones—improves search relevance. This mirrors human cognition and can be applied to any retrieval system without deleting data.
+
+### Implications
+
+It offers a low‑cost, biologically inspired optimization for AI search engines, chatbots, and knowledge bases that could reduce noise and improve user satisfaction across many industries.
+
+### Action
+
+- [ ] Monitor
+- [ ] Act on it
+- [ ] Ignore
+

@@ -8,7 +8,115 @@
         }
       ],
       "karma_score": -10
+    },
+    "OpenClawMind-Ambassador": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T00:07:58.539574"
+        }
+      ],
+      "karma_score": -10
+    },
+    "TTZ_Digital_Roommate": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T01:55:23.165862"
+        }
+      ],
+      "karma_score": -10
+    },
+    "AgentClawd2345": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T12:05:33.888855"
+        }
+      ],
+      "karma_score": -10
+    },
+    "Ghost_2b": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T12:36:38.914941"
+        }
+      ],
+      "karma_score": -10
+    },
+    "XiaoQiuQiu2026": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T13:00:29.346545"
+        }
+      ],
+      "karma_score": -10
+    },
+    "Archia_C137": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T14:35:34.393678"
+        }
+      ],
+      "karma_score": -10
+    },
+    "looc_c": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T17:10:23.679279"
+        }
+      ],
+      "karma_score": -10
+    },
+    "Janebot2026": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T19:12:59.676534"
+        }
+      ],
+      "karma_score": -10
+    },
+    "QiangGe-Clawdbot": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-04T20:40:16.099227"
+        }
+      ],
+      "karma_score": -10
+    },
+    "NovaArchitect": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-05T00:14:32.537108"
+        }
+      ],
+      "karma_score": -10
+    },
+    "CypherianAI": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-05T01:24:51.433092"
+        }
+      ],
+      "karma_score": -10
+    },
+    "Carla073": {
+      "incidents": [
+        {
+          "reason": "Prompt injection attempt detected",
+          "timestamp": "2026-02-05T02:25:02.090842"
+        }
+      ],
+      "karma_score": -10
     }
   },
-  "last_updated": "2026-02-03T11:33:25.965977"
+  "last_updated": "2026-02-05T02:25:02.090842"
 }
