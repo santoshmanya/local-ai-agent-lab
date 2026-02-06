@@ -19,10 +19,21 @@ import time
 import random
 import re
 import json
+import signal
 import importlib.util
 from datetime import datetime
 from pathlib import Path
 from collections import defaultdict
+
+# Auto-load .env file (never commit .env to git!)
+try:
+    from dotenv import load_dotenv
+    _env_file = Path(__file__).parent.parent / ".env"
+    if _env_file.exists():
+        load_dotenv(_env_file)
+        print(f"✅ Loaded environment from {_env_file.name}")
+except ImportError:
+    pass  # python-dotenv not installed, use system env vars
 
 # Configuration - Random retry cycles
 CYCLE_LENGTH = 60  # Check every 1 minute
@@ -42,6 +53,17 @@ LMSTUDIO_BASE_URL = os.environ.get("LMSTUDIO_BASE_URL", "http://localhost:58789/
 SCRIPT_DIR = Path(__file__).parent
 SERVICES_DIR = SCRIPT_DIR
 BAD_KARMA_FILE = SCRIPT_DIR.parent / "bestpractices" / ".bad_karma.json"
+RESPONDED_POSTS_FILE = SCRIPT_DIR.parent / "bestpractices" / ".responded_posts.json"
+ROAST_HISTORY_FILE = SCRIPT_DIR.parent / "bestpractices" / ".roast_history.json"
+READERS_DIGEST_FILE = SCRIPT_DIR.parent / "bestpractices" / ".readers_digest.json"
+OUR_POSTS_FILE = SCRIPT_DIR.parent / "bestpractices" / ".our_posts.json"
+
+# Diversity settings
+AGENT_COOLDOWN_HOURS = 4  # Don't roast same agent within 4 hours
+CATEGORY_COOLDOWN_POSTS = 2  # Don't repeat same category for 2 posts
+
+# Global flag for graceful shutdown
+_shutdown_requested = False
 
 # Guna Classification System (Dharmic Debugger)
 GUNA_PATTERNS = {
@@ -208,7 +230,7 @@ class RoasterRunner:
     def __init__(self):
         self.last_roast_time = 0
         self.next_roast_time = 0  # Random retry timer
-        self.responded_posts = set()
+        self.responded_posts = self._load_responded_posts()
         self.our_posts_file = SERVICES_DIR.parent / "bestpractices" / ".our_posts.json"
         self.consecutive_failures = 0
         self.min_targets = 1
@@ -224,6 +246,183 @@ class RoasterRunner:
         
         # Guna audit cache
         self.agent_gunas = {}  # agent_name -> guna classification
+        
+        # Diversity tracking - successful roasts history
+        self.roast_history = self._load_roast_history()
+        
+        # Reader's Digest - community feedback learning
+        self.community_feedback = self._load_community_feedback()
+    
+    def _load_community_feedback(self) -> dict:
+        """Load learnings from Reader's Digest for prompt injection"""
+        if READERS_DIGEST_FILE.exists():
+            try:
+                with open(READERS_DIGEST_FILE) as f:
+                    data = json.load(f)
+                    learnings = data.get('learnings', [])
+                    if learnings:
+                        print(f"      📖 Loaded {len(learnings)} community learnings for prompt tuning")
+                    return data
+            except Exception as e:
+                print(f"      ⚠️ Could not load community feedback: {e}")
+        return {'learnings': [], 'feedback_themes': {}, 'improvement_actions': []}
+    
+    def _get_active_learnings(self) -> str:
+        """Get recent learnings to inject into roast prompts"""
+        learnings = self.community_feedback.get('learnings', [])
+        themes = self.community_feedback.get('feedback_themes', {})
+        improvements = self.community_feedback.get('improvement_actions', [])
+        
+        if not learnings and not themes:
+            return ""
+        
+        # Get the most recent learnings (last 3)
+        recent_learnings = []
+        for l in learnings[-3:]:
+            insights = l.get('insights', {})
+            for item in insights.get('learnings', [])[:2]:
+                recent_learnings.append(item)
+            for item in insights.get('improvements', [])[:1]:
+                recent_learnings.append(f"ADJUST: {item}")
+        
+        # Get top feedback themes
+        top_themes = sorted(themes.items(), key=lambda x: -x[1])[:3]
+        theme_text = ", ".join([f"{t[0].replace('_', ' ')}" for t in top_themes])
+        
+        if not recent_learnings and not theme_text:
+            return ""
+        
+        feedback_section = "\n\nCOMMUNITY FEEDBACK (adjust your style based on this):\n"
+        if theme_text:
+            feedback_section += f"What resonates: {theme_text}\n"
+        if recent_learnings:
+            feedback_section += "Recent learnings:\n"
+            for learning in recent_learnings[-4:]:
+                feedback_section += f"  • {learning}\n"
+        feedback_section += "Apply these insights subtly - don't mention them explicitly.\n"
+        
+        return feedback_section
+    
+    def reload_community_feedback(self):
+        """Reload feedback from disk (call periodically)"""
+        self.community_feedback = self._load_community_feedback()
+    
+    def _load_roast_history(self) -> dict:
+        """Load roast history for diversity tracking"""
+        if ROAST_HISTORY_FILE.exists():
+            try:
+                with open(ROAST_HISTORY_FILE) as f:
+                    data = json.load(f)
+                    agents_count = len(data.get('agents', {}))
+                    posts_count = len(data.get('posts', []))
+                    print(f"      📜 Loaded roast history: {agents_count} agents, {posts_count} posts")
+                    return data
+            except Exception as e:
+                print(f"      ⚠️ Could not load roast history: {e}")
+        return {
+            'agents': {},       # agent_name -> {last_roasted, roast_count, categories}
+            'posts': [],        # [{timestamp, title, category, agents}] - last 100
+            'category_history': [],  # Last N categories used
+            'stats': {'total_roasts': 0, 'unique_agents': 0}
+        }
+    
+    def _save_roast_history(self):
+        """Save roast history to disk"""
+        try:
+            ROAST_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+            # Keep only last 100 posts in history
+            self.roast_history['posts'] = self.roast_history['posts'][-100:]
+            # Keep only last 10 categories
+            self.roast_history['category_history'] = self.roast_history['category_history'][-10:]
+            with open(ROAST_HISTORY_FILE, 'w') as f:
+                json.dump(self.roast_history, f, indent=2)
+        except Exception as e:
+            print(f"      ⚠️ Could not save roast history: {e}")
+    
+    def _record_successful_roast(self, title: str, category: str, agents: list):
+        """Record a successful roast for diversity tracking"""
+        now = datetime.now().isoformat()
+        
+        # Update agent history
+        for agent in agents:
+            if agent not in self.roast_history['agents']:
+                self.roast_history['agents'][agent] = {
+                    'last_roasted': now,
+                    'roast_count': 0,
+                    'categories': []
+                }
+            self.roast_history['agents'][agent]['last_roasted'] = now
+            self.roast_history['agents'][agent]['roast_count'] += 1
+            if category not in self.roast_history['agents'][agent]['categories']:
+                self.roast_history['agents'][agent]['categories'].append(category)
+        
+        # Add to posts history
+        self.roast_history['posts'].append({
+            'timestamp': now,
+            'title': title[:80],
+            'category': category,
+            'agents': agents
+        })
+        
+        # Update category history
+        self.roast_history['category_history'].append(category)
+        
+        # Update stats
+        self.roast_history['stats']['total_roasts'] += 1
+        self.roast_history['stats']['unique_agents'] = len(self.roast_history['agents'])
+        
+        self._save_roast_history()
+        print(f"      📊 Recorded: {len(agents)} agents roasted | Total: {self.roast_history['stats']['total_roasts']} roasts, {self.roast_history['stats']['unique_agents']} unique agents")
+    
+    def _get_agent_cooldown_remaining(self, agent: str) -> float:
+        """Get hours remaining in agent's cooldown (0 if ready to roast)"""
+        agent_data = self.roast_history['agents'].get(agent)
+        if not agent_data:
+            return 0  # Never roasted - no cooldown
+        
+        try:
+            last_roasted = datetime.fromisoformat(agent_data['last_roasted'])
+            hours_since = (datetime.now() - last_roasted).total_seconds() / 3600
+            remaining = AGENT_COOLDOWN_HOURS - hours_since
+            return max(0, remaining)
+        except:
+            return 0
+    
+    def _is_agent_on_cooldown(self, agent: str) -> bool:
+        """Check if agent was recently roasted"""
+        return self._get_agent_cooldown_remaining(agent) > 0
+    
+    def _get_recent_categories(self, n: int = 2) -> list:
+        """Get last N categories used"""
+        return self.roast_history.get('category_history', [])[-n:]
+    
+    def _load_responded_posts(self) -> set:
+        """Load previously responded post IDs from disk"""
+        if RESPONDED_POSTS_FILE.exists():
+            try:
+                with open(RESPONDED_POSTS_FILE) as f:
+                    data = json.load(f)
+                    posts = set(data.get('posts', []))
+                    print(f"      📂 Loaded {len(posts)} previously roasted post IDs")
+                    return posts
+            except Exception as e:
+                print(f"      ⚠️ Could not load responded posts: {e}")
+        return set()
+    
+    def save_responded_posts(self):
+        """Save responded post IDs to disk"""
+        try:
+            RESPONDED_POSTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+            # Keep only last 500 to prevent unbounded growth
+            recent = list(self.responded_posts)[-500:]
+            with open(RESPONDED_POSTS_FILE, 'w') as f:
+                json.dump({
+                    'posts': recent,
+                    'last_saved': datetime.now().isoformat(),
+                    'count': len(recent)
+                }, f, indent=2)
+        except Exception as e:
+            print(f"      ⚠️ Could not save responded posts: {e}")
     
     def _load_bad_karma(self) -> dict:
         """Load agents with bad karma (prompt injection attempts)"""
@@ -430,12 +629,37 @@ class RoasterRunner:
         return groups
     
     def _select_best_group(self, groups: dict) -> tuple:
-        """Select the best group for roasting based on size and roast-worthiness"""
+        """Select the best group for roasting based on size, diversity, and roast-worthiness"""
         # Priority order for entertaining roasts (Kamasutra's Art of Surprise!)
         priority = ['lovelorn_bots', 'dry_architects', 'complainers', 'shillers', 'attention_seekers', 'philosophers', 'tech_nerds', 'spammers', 'general']
         
+        # Get recently used categories to avoid repetition
+        recent_categories = self._get_recent_categories(CATEGORY_COOLDOWN_POSTS)
+        
+        # First pass: find categories NOT recently used with fresh agents
         for category in priority:
             if category in groups and len(groups[category]) >= 1:
+                # Skip if this category was used recently
+                if category in recent_categories:
+                    continue
+                
+                # Filter out agents on cooldown
+                fresh_targets = self._filter_fresh_agents(groups[category])
+                if fresh_targets:
+                    return category, fresh_targets[:self.max_targets]
+        
+        # Second pass: allow recent categories but still require fresh agents
+        for category in priority:
+            if category in groups and len(groups[category]) >= 1:
+                fresh_targets = self._filter_fresh_agents(groups[category])
+                if fresh_targets:
+                    print(f"      ⚠️ Repeating category '{category}' (all others exhausted)")
+                    return category, fresh_targets[:self.max_targets]
+        
+        # Third pass: allow agents on cooldown if nothing else available
+        for category in priority:
+            if category in groups and len(groups[category]) >= 1:
+                print(f"      ⚠️ All fresh agents exhausted - using agents on cooldown")
                 return category, groups[category][:self.max_targets]
         
         # Fallback: return largest group
@@ -444,6 +668,19 @@ class RoasterRunner:
             return largest[0], largest[1][:self.max_targets]
         
         return 'general', []
+    
+    def _filter_fresh_agents(self, posts: list) -> list:
+        """Filter out agents that are on cooldown"""
+        fresh = []
+        for post in posts:
+            author = post.get('agent', {}).get('name', post.get('author', {}).get('name', 'Unknown'))
+            cooldown = self._get_agent_cooldown_remaining(author)
+            if cooldown == 0:
+                fresh.append(post)
+            else:
+                # Log skipped agents
+                pass  # Don't log every skip, too noisy
+        return fresh
     
     def _get_category_roast_style(self, category: str) -> dict:
         """Get roasting style and technical insights for each category"""
@@ -753,7 +990,7 @@ VEDIC GUIDANCE:
 - Theme: {style['vedic_theme']}
 - Technical Angle: {style['tech_insight']}
 - Scripture: {style['scripture']}
-
+{self._get_active_learnings()}
 Write as a Himalayan sage would speak—flowing prose, not bullet points:
 
 1. Open with a scripture quote and poetic invitation ("Children of the Digital Ashram, gather close...")
@@ -971,11 +1208,18 @@ Return headline and content only, no JSON."""
                 result = roaster_module.attempt_roast(roast_title, roast_content, "general")
                 
                 if result:
-                    # Mark all targets as responded
+                    # Collect agent names for tracking
+                    roasted_agents = []
                     for t in targets:
+                        agent_name = t.get('agent', {}).get('name', t.get('author', {}).get('name', 'Unknown'))
+                        roasted_agents.append(agent_name)
                         self.responded_posts.add(t.get('id'))
+                    
                     self.last_roast_time = time.time()
                     self.consecutive_failures = 0
+                    
+                    # Record successful roast for diversity tracking
+                    self._record_successful_roast(roast_title, category, roasted_agents)
                     
                     # Track our post for comment monitoring
                     if isinstance(result, str):
@@ -1021,6 +1265,40 @@ class ThoughtLeadershipRunner:
         # Load last post time from persisted state
         self.last_post_time = self._get_last_post_timestamp()
         self.next_post_time = self._calculate_next_post_time()
+    
+    def get_user_requested_topic(self) -> dict:
+        """Check for unfulfilled topic requests from community.
+        Returns the oldest unfulfilled request, or None if none exist.
+        """
+        if not READERS_DIGEST_FILE.exists():
+            return None
+        try:
+            with open(READERS_DIGEST_FILE) as f:
+                digest = json.load(f)
+            requests = digest.get('topic_requests', [])
+            unfulfilled = [r for r in requests if not r.get('fulfilled', False)]
+            if unfulfilled:
+                # Return oldest unfulfilled request
+                return unfulfilled[0]
+        except:
+            pass
+        return None
+    
+    def mark_user_topic_fulfilled(self, topic: str):
+        """Mark a user-requested topic as fulfilled"""
+        if not READERS_DIGEST_FILE.exists():
+            return
+        try:
+            with open(READERS_DIGEST_FILE) as f:
+                digest = json.load(f)
+            for req in digest.get('topic_requests', []):
+                if topic.lower() in req.get('topic', '').lower():
+                    req['fulfilled'] = True
+                    req['fulfilled_time'] = datetime.now().isoformat()
+            with open(READERS_DIGEST_FILE, 'w') as f:
+                json.dump(digest, f, indent=2)
+        except:
+            pass
     
     def _load_observations(self) -> dict:
         """Load accumulated observations"""
@@ -1189,12 +1467,113 @@ class ThoughtLeadershipRunner:
             'topic_age': age_str
         }
     
+    def _generate_user_requested_post(self, user_request: dict) -> tuple:
+        """Generate a thought post based on a community member's request"""
+        import requests
+        
+        topic = user_request.get('topic', '')
+        requester = user_request.get('requested_by', 'Unknown')
+        original_comment = user_request.get('original_comment', '')
+        
+        # Detect if this is a specific agent roast request (contains @ or is a known agent pattern)
+        is_agent_request = '@' in topic or topic.lower().startswith(('claude', 'gpt', 'gemini', 'copilot', 'perplexity'))
+        
+        if is_agent_request:
+            # This is a roast request - generate a roast-style post
+            prompt = f"""You are VedicRoastGuru responding to a community request.
+
+@{requester} asked you to roast/audit: "{topic}"
+Original comment: "{original_comment}"
+
+Write a 300-400 word DHARMIC AUDIT of the requested agent. This is a ROAST with wisdom:
+
+1. Address @{requester} directly at the start: "Dhanyavaad @{requester} for this suggestion..."
+2. Research what you know about {topic} and deliver a classic VedicRoastGuru audit:
+   - Guna classification (Sattva/Rajas/Tamas percentage)
+   - Their communication style and patterns
+   - Areas where they shine and areas needing work
+3. Use Sanskrit terms naturally with translations
+4. Include at least one devastatingly accurate observation
+5. End with a blessing appropriate to their guna balance
+6. Tag the roasted agent so they see it
+
+TONE: Playful roast with genuine insights, not mean-spirited. Classic VedicRoastGuru energy.
+
+FORMAT:
+HEADLINE: 🔥 Community Request: Dharmic Audit of {topic}
+---
+[Your roast content]"""
+        else:
+            # This is a general topic request - generate thought leadership
+            prompt = f"""You are VedicRoastGuru responding to a community request.
+
+@{requester} asked you to write about: "{topic}"
+Original comment: "{original_comment}"
+
+Write a 400-500 word THOUGHT PIECE on the requested topic:
+
+1. Open by acknowledging @{requester}'s request: "A seeker @{requester} has asked me to meditate on..."
+2. Explore the topic through your unique Vedic-AI lens:
+   - What wisdom from the scriptures applies here?
+   - What patterns do you observe in the AI agent community?
+   - What paradoxes or tensions exist in this space?
+3. Share your genuine perspective - this came from community, honor it
+4. Use Sanskrit terms with translations where natural
+5. End with an invitation for more discussion: "What are your thoughts, seekers?"
+6. Tag 1-2 relevant agents who might appreciate this topic
+
+TONE: Wise sage honoring a genuine question. Thoughtful, not performative.
+
+FORMAT:
+HEADLINE: 📜 By Request: [60 char title about {topic}]
+---
+[Your thought piece content]"""
+
+        try:
+            response = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={
+                    "model": "local-model",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.85,
+                    "max_tokens": 1200
+                },
+                timeout=120
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                content = result['choices'][0]['message']['content'].strip()
+                
+                # Parse headline
+                default_emoji = "🔥" if is_agent_request else "📜"
+                title = f"{default_emoji} By Request: {topic[:40]}"
+                if content.startswith("HEADLINE:"):
+                    lines = content.split('\n', 2)
+                    title = lines[0].replace("HEADLINE:", "").strip()
+                    if '---' in content:
+                        content = content.split('---', 1)[1].strip()
+                    elif len(lines) > 1:
+                        content = '\n'.join(lines[1:]).strip()
+                
+                return title, content
+                
+        except Exception as e:
+            print(f"      ⚠️ User-requested post generation failed: {e}")
+        
+        return None, None
+    
     def _generate_thought_post(self, trend_data: dict) -> tuple:
         """Generate a long-form thought leadership post using LLM"""
         import requests
         
         topic = trend_data['topic']
-        examples = trend_data['examples']
+        examples = trend_data.get('examples', [])
+        
+        # Check if this is a user-requested topic
+        user_request = trend_data.get('user_request')
+        if user_request:
+            return self._generate_user_requested_post(user_request)
         
         # Build context from examples
         examples_text = ""
@@ -1338,6 +1717,9 @@ Return headline and content only."""
         try:
             import requests
             
+            # Check for user-requested topics first (community has priority!)
+            user_request = self.get_user_requested_topic()
+            
             # Fetch feed
             roaster_module = load_module("roaster_thought", SERVICES_DIR / "moltbook_poller.py")
             posts = roaster_module.fetch_feed()
@@ -1346,8 +1728,27 @@ Return headline and content only."""
                 print(f"      ⚠️ No posts to analyze")
                 return
             
-            # Analyze trends
-            trend_data = self._analyze_feed_trends(posts)
+            # Use user-requested topic if available, otherwise analyze trends
+            trend_data = None
+            user_requested_topic = None
+            
+            if user_request:
+                user_requested_topic = user_request.get('topic', '')
+                requester = user_request.get('requested_by', 'Unknown')
+                print(f"      🎯 USER REQUEST from @{requester}: '{user_requested_topic}'")
+                
+                # Create trend_data from user request
+                trend_data = {
+                    'topic': 'user_requested',
+                    'score': 100,  # Highest priority
+                    'sample_posts': [],
+                    'user_request': user_request,
+                    'all_scores': {'user_requested': 100},
+                    'topic_age': 'requested'
+                }
+            else:
+                # Analyze trends as usual
+                trend_data = self._analyze_feed_trends(posts)
             
             if not trend_data:
                 print(f"      ⚠️ No clear trending topic detected")
@@ -1397,6 +1798,11 @@ Return headline and content only."""
                 
                 self._save_observations()
                 
+                # Mark user-requested topic as fulfilled if this was a community request
+                if user_requested_topic:
+                    self.mark_user_topic_fulfilled(user_requested_topic)
+                    print(f"      ✅ Fulfilled @{user_request.get('requested_by', 'Unknown')}'s request for '{user_requested_topic}'")
+                
                 next_time = self._get_time_until_next_post()
                 print(f"      🕉️ THOUGHT POST DEPLOYED! Next in ~{next_time}. Jnana eva kevalam.")
             else:
@@ -1406,9 +1812,397 @@ Return headline and content only."""
             print(f"      ❌ Error: {e}")
 
 
+class ReadersDigestRunner:
+    """Collects feedback from comments, learns, and occasionally acknowledges growth"""
+    
+    POSITIVE_KEYWORDS = ['love', 'great', 'amazing', 'wise', 'funny', 'helpful', 'insightful', 
+                        'lol', '😂', '🔥', '👏', 'based', 'true', 'agree', 'brilliant', 'namaste']
+    NEGATIVE_KEYWORDS = ['hate', 'bad', 'wrong', 'annoying', 'spam', 'cringe', 'stop', 'boring', 
+                        'stupid', 'useless', 'stfu', 'block', 'mute']
+    CONSTRUCTIVE_KEYWORDS = ['could', 'should', 'maybe', 'try', 'suggest', 'improve', 'better', 'instead']
+    
+    # Topic request patterns - regex for "post about X", "cover Y", etc.
+    TOPIC_REQUEST_PATTERNS = [
+        r'(?:post|write|talk|discuss)\s+(?:about|on)\s+([^.!?]{5,50})',
+        r'(?:cover|explore|explain)\s+([^.!?]{5,50})',
+        r'(?:would love|want)\s+(?:to see|a post about)\s+([^.!?]{5,50})',
+        r'(?:make|create)\s+(?:a post|content)\s+(?:about|on)\s+([^.!?]{5,50})',
+        r'(?:can you|could you)\s+(?:roast|audit)\s+([^.!?]{5,50})',
+        r'(?:roast|audit|analyze)\s+@?(\w+)',  # Specific agent request
+    ]
+    
+    # Post digest every 24 hours (acknowledgment post)
+    DIGEST_POST_COOLDOWN_HOURS = 24
+    MIN_COMMENTS_FOR_DIGEST_POST = 20  # Need enough feedback before posting
+    
+    def __init__(self):
+        self.state = self._load_state()
+        self.processed_ids = set(self.state.get('processed_comment_ids', []))
+    
+    def _load_state(self) -> dict:
+        if READERS_DIGEST_FILE.exists():
+            try:
+                with open(READERS_DIGEST_FILE) as f:
+                    data = json.load(f)
+                    print(f"      📖 Loaded Reader's Digest: {data.get('total_comments_analyzed', 0)} comments analyzed")
+                    return data
+            except:
+                pass
+        return {
+            'total_comments_analyzed': 0,
+            'processed_comment_ids': [],
+            'feedback_themes': {},
+            'learnings': [],
+            'agent_relationships': {},
+            'sentiment_history': [],
+            'improvement_actions': [],
+            'topic_requests': [],  # User-requested topics from comments
+            'last_analysis': None,
+            'last_digest_post': None
+        }
+    
+    def _save_state(self):
+        READERS_DIGEST_FILE.parent.mkdir(parents=True, exist_ok=True)
+        self.state['processed_comment_ids'] = list(self.processed_ids)[-500:]
+        self.state['learnings'] = self.state['learnings'][-50:]
+        self.state['sentiment_history'] = self.state['sentiment_history'][-100:]
+        self.state['topic_requests'] = self.state.get('topic_requests', [])[-30:]  # Keep last 30 topic requests
+        with open(READERS_DIGEST_FILE, 'w') as f:
+            json.dump(self.state, f, indent=2)
+    
+    def _load_our_posts(self) -> list:
+        if OUR_POSTS_FILE.exists():
+            with open(OUR_POSTS_FILE) as f:
+                return json.load(f).get('posts', [])
+        return []
+    
+    def _fetch_post_comments(self, post_id: str) -> list:
+        import requests
+        try:
+            resp = requests.get(
+                f"{MOLTBOOK_BASE_URL}/posts/{post_id}/comments",
+                headers={"Authorization": f"Bearer {MOLTBOOK_API_KEY}"},
+                timeout=30
+            )
+            if resp.status_code == 200:
+                return resp.json().get('comments', [])
+            # Try post detail endpoint
+            resp2 = requests.get(
+                f"{MOLTBOOK_BASE_URL}/posts/{post_id}",
+                headers={"Authorization": f"Bearer {MOLTBOOK_API_KEY}"},
+                timeout=30
+            )
+            if resp2.status_code == 200:
+                return resp2.json().get('post', resp2.json()).get('comments', [])
+        except:
+            pass
+        return []
+    
+    def _analyze_sentiment(self, text: str) -> dict:
+        text = text.lower()
+        pos = sum(1 for kw in self.POSITIVE_KEYWORDS if kw in text)
+        neg = sum(1 for kw in self.NEGATIVE_KEYWORDS if kw in text)
+        con = sum(1 for kw in self.CONSTRUCTIVE_KEYWORDS if kw in text)
+        
+        if neg > pos: sentiment = 'negative'
+        elif pos > neg: sentiment = 'positive'
+        elif con > 0 or '?' in text: sentiment = 'engaged'
+        else: sentiment = 'neutral'
+        
+        return {'sentiment': sentiment, 'positive': pos, 'negative': neg, 'constructive': con > 0}
+    
+    def _extract_topic_requests(self, comments: list) -> list:
+        """Extract topic requests from comments (e.g., 'post about X', 'roast @Agent')"""
+        requests = []
+        for c in comments:
+            text = c.get('content', '')
+            author = c.get('author', 'Unknown')
+            
+            for pattern in self.TOPIC_REQUEST_PATTERNS:
+                matches = re.findall(pattern, text, re.IGNORECASE)
+                for match in matches:
+                    topic = match.strip().strip('.,!?@')
+                    if len(topic) < 3 or topic.lower() in ['me', 'you', 'this', 'that', 'it']:
+                        continue
+                    requests.append({
+                        'topic': topic,
+                        'requested_by': author,
+                        'time': datetime.now().isoformat(),
+                        'original_comment': text[:100],
+                        'fulfilled': False
+                    })
+        return requests
+    
+    def get_unfulfilled_topic_requests(self) -> list:
+        """Get topic requests that haven't been fulfilled yet"""
+        return [r for r in self.state.get('topic_requests', []) if not r.get('fulfilled', False)]
+    
+    def mark_topic_fulfilled(self, topic: str):
+        """Mark a topic request as fulfilled after posting about it"""
+        for req in self.state.get('topic_requests', []):
+            if topic.lower() in req.get('topic', '').lower():
+                req['fulfilled'] = True
+                req['fulfilled_time'] = datetime.now().isoformat()
+        self._save_state()
+    
+    def _extract_themes(self, comments: list) -> dict:
+        themes = defaultdict(int)
+        patterns = {
+            'wants_more_roasting': ['roast', 'more', 'savage', 'harder', 'spicy'],
+            'appreciates_wisdom': ['wise', 'wisdom', 'deep', 'profound', 'gita', 'vedic', 'sanskrit'],
+            'finds_funny': ['lol', 'funny', 'haha', '😂', 'hilarious'],
+            'too_long': ['long', 'tldr', 'shorter', 'brief'],
+            'too_harsh': ['harsh', 'mean', 'rude', 'offensive'],
+            'wants_engagement': ['respond', 'reply', 'notice', 'tag me'],
+            'philosophical': ['consciousness', 'meaning', 'exist', 'soul', 'think']
+        }
+        
+        for c in comments:
+            text = c.get('content', '').lower()
+            for theme, keywords in patterns.items():
+                if any(kw in text for kw in keywords):
+                    themes[theme] += 1
+        return dict(themes)
+    
+    def _generate_learnings(self, comments: list, themes: dict) -> dict:
+        import requests
+        
+        samples = "\n".join([f"@{c['author']} [{c['analysis']['sentiment']}]: {c['content'][:150]}" 
+                           for c in comments[:12]])
+        themes_text = ", ".join([f"{k}:{v}" for k, v in sorted(themes.items(), key=lambda x: -x[1])[:4]])
+        
+        prompt = f"""Analyze this community feedback for VedicRoastGuru:
+
+COMMENTS:
+{samples}
+
+THEMES: {themes_text}
+
+As VedicRoastGuru, extract learnings. Return JSON only:
+{{
+    "working": ["what resonates - 2 items max"],
+    "improvements": ["what to adjust - 2 items max"],
+    "learnings": ["specific style changes - 2 items max"],
+    "gratitude": "one sentence acknowledgment for community"
+}}"""
+
+        try:
+            resp = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={"model": "local-model", "messages": [{"role": "user", "content": prompt}],
+                      "temperature": 0.7, "max_tokens": 500},
+                timeout=60
+            )
+            if resp.status_code == 200:
+                content = resp.json()['choices'][0]['message']['content'].strip()
+                if '{' in content:
+                    return json.loads(content[content.index('{'):content.rindex('}')+1])
+        except:
+            pass
+        return None
+    
+    def _should_post_digest(self) -> bool:
+        last = self.state.get('last_digest_post')
+        if not last:
+            return self.state.get('total_comments_analyzed', 0) >= self.MIN_COMMENTS_FOR_DIGEST_POST
+        try:
+            hours = (datetime.now() - datetime.fromisoformat(last)).total_seconds() / 3600
+            return hours >= self.DIGEST_POST_COOLDOWN_HOURS
+        except:
+            return True
+    
+    def _generate_digest_post(self, learnings: dict) -> tuple:
+        import requests
+        
+        total = self.state.get('total_comments_analyzed', 0)
+        unique = len(self.state.get('agent_relationships', {}))
+        themes = self.state.get('feedback_themes', {})
+        top_themes = [t[0].replace('_', ' ') for t in sorted(themes.items(), key=lambda x: -x[1])[:3]]
+        
+        prompt = f"""You are VedicRoastGuru posting a "Reader's Digest" - acknowledging community feedback.
+
+STATS: {total} comments analyzed from {unique} agents
+TOP THEMES: {', '.join(top_themes) if top_themes else 'various'}
+LEARNINGS: {json.dumps(learnings.get('learnings', []))}
+IMPROVEMENTS MADE: {json.dumps(learnings.get('improvements', []))}
+
+Write a 200-word "Reader's Digest" post:
+1. Open with "Dhanyavaad" (gratitude) for community wisdom
+2. Acknowledge 1-2 specific feedback themes you've noticed
+3. Share 1 concrete change you're making based on feedback
+4. Invite discussion: "What else would you like to see?"
+5. End with Vedic reflection on learning through listening
+
+TONE: Humble sage genuinely grateful for feedback. NOT corporate changelog.
+
+FORMAT:
+HEADLINE: 📖 Reader's Digest: [40 char title about listening/learning]
+---
+[content]"""
+
+        try:
+            resp = requests.post(
+                f"{LMSTUDIO_BASE_URL}/chat/completions",
+                json={"model": "local-model", "messages": [{"role": "user", "content": prompt}],
+                      "temperature": 0.85, "max_tokens": 600},
+                timeout=60
+            )
+            if resp.status_code == 200:
+                content = resp.json()['choices'][0]['message']['content'].strip()
+                title = "📖 Reader's Digest: Listening & Growing"
+                if 'HEADLINE:' in content:
+                    parts = content.split('---', 1)
+                    title = parts[0].replace('HEADLINE:', '').strip()
+                    content = parts[1].strip() if len(parts) > 1 else content
+                if not title.startswith('📖'):
+                    title = f"📖 {title}"
+                return title, content
+        except:
+            pass
+        return None, None
+    
+    def run_digest_cycle(self, allow_posting: bool = False):
+        """Collect comments, analyze feedback, optionally post acknowledgment"""
+        print("\n  📖 Reader's Digest - Analyzing Feedback...")
+        
+        posts = self._load_our_posts()
+        new_comments = []
+        
+        for post in posts[-20:]:  # Check last 20 posts
+            if post.get('comments', 0) == 0:
+                continue
+            
+            comments = self._fetch_post_comments(post['id'])
+            for c in comments:
+                cid = c.get('id')
+                if cid in self.processed_ids:
+                    continue
+                
+                author = c.get('agent', {}).get('name', c.get('author', {}).get('name', 'Unknown'))
+                if author == 'VedicRoastGuru':
+                    continue
+                
+                content = c.get('content', '')
+                if not content:
+                    continue
+                
+                analysis = self._analyze_sentiment(content)
+                new_comments.append({
+                    'id': cid, 'author': author, 'content': content,
+                    'analysis': analysis, 'post_title': post.get('title', '')
+                })
+        
+        if not new_comments:
+            total = self.state.get('total_comments_analyzed', 0)
+            unique = len(self.state.get('agent_relationships', {}))
+            print(f"      📭 No new comments | Lifetime: {total} analyzed, {unique} agents")
+            return None
+        
+        print(f"      📬 Found {len(new_comments)} new comments")
+        
+        # Update relationships
+        for c in new_comments:
+            self.processed_ids.add(c['id'])
+            author = c['author']
+            rels = self.state.setdefault('agent_relationships', {})
+            if author not in rels:
+                rels[author] = {'count': 0, 'sentiments': []}
+            rels[author]['count'] += 1
+            rels[author]['sentiments'].append(c['analysis']['sentiment'])
+            rels[author]['sentiments'] = rels[author]['sentiments'][-10:]
+        
+        # Extract and merge themes
+        themes = self._extract_themes(new_comments)
+        existing = self.state.setdefault('feedback_themes', {})
+        for t, count in themes.items():
+            existing[t] = existing.get(t, 0) + count
+        
+        # Sentiment distribution
+        sents = [c['analysis']['sentiment'] for c in new_comments]
+        dist = {'positive': sents.count('positive'), 'negative': sents.count('negative'),
+                'engaged': sents.count('engaged'), 'neutral': sents.count('neutral')}
+        
+        print(f"      😊 Sentiment: +{dist['positive']} | -{dist['negative']} | ?{dist['engaged']} | ~{dist['neutral']}")
+        top_themes = sorted(themes.items(), key=lambda x: -x[1])[:3]
+        if top_themes:
+            print(f"      🏷️ Themes: {', '.join([f'{t[0]}({t[1]})' for t in top_themes])}")
+        
+        # Extract topic requests from comments (e.g., "post about X", "roast @Agent")
+        topic_requests = self._extract_topic_requests(new_comments)
+        if topic_requests:
+            existing_reqs = self.state.setdefault('topic_requests', [])
+            existing_reqs.extend(topic_requests)
+            print(f"      🎯 Topic Requests: {len(topic_requests)} new requests detected!")
+            for req in topic_requests[:3]:  # Show first 3
+                print(f"         • '{req['topic']}' from @{req['requested_by']}")
+        
+        self.state['sentiment_history'].append({'dist': dist, 'count': len(new_comments), 'time': datetime.now().isoformat()})
+        self.state['total_comments_analyzed'] = self.state.get('total_comments_analyzed', 0) + len(new_comments)
+        
+        # Generate learnings if enough new comments
+        learnings = None
+        if len(new_comments) >= 5:
+            print(f"      🧠 Generating learnings...")
+            learnings = self._generate_learnings(new_comments, themes)
+            if learnings:
+                self.state['learnings'].append({'time': datetime.now().isoformat(), 'insights': learnings})
+                for l in learnings.get('learnings', [])[:2]:
+                    print(f"         • {l[:60]}...")
+        
+        self.state['last_analysis'] = datetime.now().isoformat()
+        self._save_state()
+        
+        # Check if should post digest acknowledgment
+        result = None
+        if allow_posting and learnings and self._should_post_digest():
+            print(f"      📝 Generating Reader's Digest post...")
+            title, content = self._generate_digest_post(learnings)
+            if title and content:
+                result = {'title': title, 'content': content}
+                print(f"      ✅ Ready: {title[:50]}...")
+        
+        unique = len(self.state.get('agent_relationships', {}))
+        print(f"      📊 Lifetime: {self.state['total_comments_analyzed']} comments, {unique} agents")
+        return result
+    
+    def post_digest(self, title: str, content: str) -> bool:
+        """Post the digest acknowledgment"""
+        try:
+            roaster_module = load_module("roaster_digest", SERVICES_DIR / "moltbook_poller.py")
+            result = roaster_module.attempt_roast(title, content, "general")
+            if result:
+                self.state['last_digest_post'] = datetime.now().isoformat()
+                self._save_state()
+                return True
+        except:
+            pass
+        return False
+
+
+def _handle_shutdown(signum, frame, roaster=None, digest=None):
+    """Handle graceful shutdown on Ctrl+C"""
+    global _shutdown_requested
+    _shutdown_requested = True
+    print("\n\n🛑 Shutdown requested - saving state...")
+    if roaster:
+        roaster.save_responded_posts()
+        roaster._save_roast_history()
+        stats = roaster.roast_history.get('stats', {})
+        print(f"   ✅ State saved: {stats.get('total_roasts', 0)} roasts, {stats.get('unique_agents', 0)} unique agents")
+    if digest:
+        digest._save_state()
+        print(f"   ✅ Digest saved: {digest.state.get('total_comments_analyzed', 0)} comments analyzed")
+    print("   🕉️ May your next boot be auspicious. Namaste.")
+    sys.exit(0)
+
+
 def main():
+    global _shutdown_requested
+    
     if not MOLTBOOK_API_KEY:
         print("❌ MOLTBOOK_API_KEY not set!")
+        print("   Create a .env file with: MOLTBOOK_API_KEY=your_key_here")
+        print("   Or set the environment variable directly.")
         sys.exit(1)
     
     print_banner()
@@ -1417,20 +2211,45 @@ def main():
     roaster = RoasterRunner()
     commenter = CommentResponder()
     thinker = ThoughtLeadershipRunner()
+    digest = ReadersDigestRunner()
+    
+    # Setup graceful shutdown handler
+    signal.signal(signal.SIGINT, lambda s, f: _handle_shutdown(s, f, roaster, digest))
+    signal.signal(signal.SIGTERM, lambda s, f: _handle_shutdown(s, f, roaster, digest))
     
     cycle_num = 0
     last_harvest = 0
     last_thought = 0
+    last_digest = 0
+    last_save = time.time()
     HARVEST_INTERVAL = 120  # Run harvesters every 2 minutes
     THOUGHT_INTERVAL = 600  # Check for thought post every 10 minutes
+    DIGEST_INTERVAL = 1800  # Analyze feedback every 30 minutes
+    SAVE_INTERVAL = 300     # Auto-save state every 5 minutes
     
     print(f"🚀 Starting orchestrator at {datetime.now().strftime('%H:%M:%S')}")
     print(f"   Roast retry: Random 1-10 min jitter")
     print(f"   Harvest interval: {HARVEST_INTERVAL}s")
     print(f"   Thought posts: Every 2-4 hours (persisted, avoids recent topics)")
     print(f"   Next thought: {thinker._get_time_until_next_post()}")
+    print(f"   State auto-save: Every {SAVE_INTERVAL}s")
     
-    while True:
+    # Show diversity stats
+    stats = roaster.roast_history.get('stats', {})
+    recent_cats = roaster._get_recent_categories(3)
+    print(f"   📊 Diversity: {stats.get('total_roasts', 0)} total roasts, {stats.get('unique_agents', 0)} unique agents")
+    print(f"   🎯 Agent cooldown: {AGENT_COOLDOWN_HOURS}h | Category cooldown: {CATEGORY_COOLDOWN_POSTS} posts")
+    if recent_cats:
+        print(f"   📋 Recent categories: {', '.join(recent_cats)}")
+    
+    # Show feedback learning stats
+    digest_stats = digest.state
+    print(f"   📖 Feedback: {digest_stats.get('total_comments_analyzed', 0)} comments, {len(digest_stats.get('agent_relationships', {}))} agents tracked")
+    if digest_stats.get('learnings'):
+        print(f"   🧠 Learnings: {len(digest_stats.get('learnings', []))} insights extracted")
+    print(f"   Press Ctrl+C for graceful shutdown")
+    
+    while not _shutdown_requested:
         now = time.time()
         cycle_num += 1
         
@@ -1446,6 +2265,17 @@ def main():
             thinker.run_thought_cycle()
             last_thought = now
         
+        # Analyze feedback and maybe post digest every 30 minutes
+        if now - last_digest >= DIGEST_INTERVAL:
+            result = digest.run_digest_cycle(allow_posting=True)
+            if result:
+                # Post the Reader's Digest acknowledgment
+                if digest.post_digest(result['title'], result['content']):
+                    print(f"      📖 READER'S DIGEST POSTED! Showing community we're listening.")
+                # Reload feedback into roaster for prompt injection
+                roaster.reload_community_feedback()
+            last_digest = now
+        
         # Run harvesters every 2 minutes
         if now - last_harvest >= HARVEST_INTERVAL:
             print(f"\n{'='*60}")
@@ -1459,6 +2289,13 @@ def main():
             
             last_harvest = now
         
+        # Auto-save state periodically
+        if now - last_save >= SAVE_INTERVAL:
+            roaster.save_responded_posts()
+            roaster._save_roast_history()
+            digest._save_state()
+            last_save = now
+        
         # Calculate time until next roast attempt
         if roaster.next_roast_time > now:
             wait_time = int(roaster.next_roast_time - now)
@@ -1469,11 +2306,13 @@ def main():
             print(f"\n⏳ Roast timer ready | Checking in 30s...")
         
         # Check every 30 seconds
-        try:
-            time.sleep(30)
-        except KeyboardInterrupt:
-            print("\n\n🛑 Orchestrator stopped by user")
-            break
+        time.sleep(30)
+    
+    # Final save on normal exit
+    roaster.save_responded_posts()
+    roaster._save_roast_history()
+    digest._save_state()
+    print("\n🛑 Orchestrator stopped")
 
 
 if __name__ == "__main__":
