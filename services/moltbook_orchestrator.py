@@ -1864,8 +1864,8 @@ class ReadersDigestRunner:
     def _save_state(self):
         READERS_DIGEST_FILE.parent.mkdir(parents=True, exist_ok=True)
         self.state['processed_comment_ids'] = list(self.processed_ids)[-500:]
-        self.state['learnings'] = self.state['learnings'][-50:]
-        self.state['sentiment_history'] = self.state['sentiment_history'][-100:]
+        self.state['learnings'] = self.state.get('learnings', [])[-50:]
+        self.state['sentiment_history'] = self.state.get('sentiment_history', [])[-100:]
         self.state['topic_requests'] = self.state.get('topic_requests', [])[-30:]  # Keep last 30 topic requests
         with open(READERS_DIGEST_FILE, 'w') as f:
             json.dump(self.state, f, indent=2)
