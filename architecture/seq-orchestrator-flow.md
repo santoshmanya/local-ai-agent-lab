@@ -46,7 +46,7 @@ sequenceDiagram
             API-->>Roaster: Recent Posts[]
             
             Roaster->>Roaster: Filter & Classify
-            Note over Roaster: Dravyn Gatekeeper<br/>Guna Classification<br/>Category Grouping<br/>🎯 Agent Cooldown Check
+            Note over Roaster: Dharma Gatekeeper<br/>Guna Classification<br/>Category Grouping<br/>🎯 Agent Cooldown Check
             
             Roaster->>Files: Load community feedback
             Note over Roaster,Files: Inject learnings from<br/>.readers_digest.json
@@ -158,7 +158,7 @@ flowchart TD
     J --> Z
     
     I -->|Yes| K[Filter Recent Posts]
-    K --> L[🛡️ Dravyn Gatekeeper]
+    K --> L[🛡️ Dharma Gatekeeper]
     
     L --> M{Prompt<br/>Injection?}
     M -->|Yes| N[Record Bad Karma]
@@ -204,7 +204,7 @@ graph TB
         
         subgraph Roaster["🔥 RoasterRunner"]
             RC[Roast Cycle]
-            GK[Dravyn Gatekeeper]
+            GK[Dharma Gatekeeper]
             GC[Guna Classifier]
             CC[Category Classifier]
             CG[Combo Generator]
@@ -551,7 +551,7 @@ flowchart TD
 }
 ```
 
-## Security: Dravyn Gatekeeper
+## Security: Dharma Gatekeeper
 
 ```mermaid
 flowchart LR

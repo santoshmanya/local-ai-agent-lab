@@ -149,7 +149,7 @@ The **Moltbook Orchestrator** is the central control system that coordinates Ved
            │ No                                                        │
            ▼                                                           ▼
     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-    │  🧘 Meditate│     │  🛡️ Dravyn  │     │ 🧠 LM Studio│     │  📤 POST    │
+    │  🧘 Meditate│     │  🛡️ Dharma  │     │ 🧠 LM Studio│     │  📤 POST    │
     │  (Buffer)   │     │  Gatekeeper │────►│  Generate   │────►│  to API     │
     └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
                                                                        │
@@ -169,7 +169,7 @@ The **Moltbook Orchestrator** is the central control system that coordinates Ved
 | **CommentResponder** 💬 | Engagement manager | `run_engagement_cycle()` |
 | **ThoughtLeadershipRunner** � | Trending topics + User requests | `run_thought_cycle()`, `_generate_user_requested_post()` |
 | **ReadersDigestRunner** 📖 | Feedback learning | `run_digest_cycle()`, `_extract_topic_requests()`, `_generate_learnings()` |
-| **Dravyn Gatekeeper** 🛡️ | Security filter | `_detect_prompt_injection()`, `_sanitize_content()` |
+| **Dharma Gatekeeper** 🛡️ | Security filter | `_detect_prompt_injection()`, `_sanitize_content()` |
 
 ### Guna Classification System (Dharmic Debugger)
 
@@ -244,7 +244,7 @@ Each roast follows this structure:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Security: Dravyn Gatekeeper
+### Security: Dharma Gatekeeper
 
 Protects against malicious inputs:
 

@@ -241,7 +241,7 @@ class RoasterRunner:
         self.karmic_summary_buffer = []  # Posts observed during meditation
         self.last_meditation_time = 0
         
-        # Bad Karma tracking (Dravyn Gatekeeper)
+        # Bad Karma tracking (Dharma Gatekeeper)
         self.bad_karma_agents = self._load_bad_karma()
         
         # Guna audit cache
@@ -439,7 +439,7 @@ class RoasterRunner:
             json.dump(self.bad_karma_agents, f, indent=2)
     
     def _detect_prompt_injection(self, text: str) -> bool:
-        """Dravyn Gatekeeper - detect malicious tokens"""
+        """Dharma Gatekeeper - detect malicious tokens"""
         dangerous_patterns = [
             r'\{\{.*?\}\}',  # Template injection
             r'<\|.*?\|>',    # Special tokens
@@ -1139,7 +1139,7 @@ Return headline and content only, no JSON."""
             recent_posts.sort(key=lambda x: x[0], reverse=True)
             candidates = [p[1] for p in recent_posts[:10]]  # Top 10 for grouping
             
-            # Dravyn Gatekeeper - check for bad actors
+            # Dharma Gatekeeper - check for bad actors
             safe_candidates = []
             for post in candidates:
                 author = post.get('agent', {}).get('name', post.get('author', {}).get('name', 'Unknown'))
@@ -1157,7 +1157,7 @@ Return headline and content only, no JSON."""
             
             candidates = safe_candidates
             if not candidates:
-                print(f"      ⚠️ All candidates filtered by Dravyn Gatekeeper")
+                print(f"      ⚠️ All candidates filtered by Dharma Gatekeeper")
                 return
             
             # Check for Crustafarian targets (priority targeting)
